@@ -1,0 +1,312 @@
+{
+  "plugins": [
+    "react",
+    "import"
+  ],
+  "rules": {
+    "react/forbid-elements": [
+      "warn",
+      {
+        "forbid": []
+      }
+    ],
+    "no-restricted-imports": [
+      "warn",
+      {
+        "patterns": [
+          {
+            "group": [
+              "components/board/**",
+              "components/content/**",
+              "components/core/**",
+              "components/forms/**",
+              "ui_kits/parent_dashboard/**",
+              "ui_kits/website/**",
+              "ui_kits/worksheet/**"
+            ],
+            "message": "Import design-system components from 'index.js', not component internals."
+          }
+        ]
+      }
+    ],
+    "no-restricted-syntax": [
+      "warn",
+      {
+        "selector": "Literal[value=/#[0-9a-fA-F]{3,8}\\b/]",
+        "message": "Raw hex color — use a design-system color token via var()."
+      },
+      {
+        "selector": "Literal[value=/\\b\\d+px\\b/]",
+        "message": "Raw px value — use a design-system spacing token via var()."
+      },
+      {
+        "selector": "Literal[value=/font-family\\s*:\\s*(?!['\\\"]?(?:Source Serif 4))/i]",
+        "message": "Font not provided by the design system. Available: Source Serif 4."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='BoardFrame'] > JSXAttribute > JSXIdentifier[name!=/^(?:poster|alt|tutor|caption|tone|showVoice|voiceOn|onToggleVoice|aspect|surface|children|key|ref|className|style|children)$/]",
+        "message": "<BoardFrame> doesn't accept that prop. Declared props: poster, alt, tutor, caption, tone, showVoice, voiceOn, onToggleVoice, aspect, surface, children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='BoardFrame'] > JSXAttribute[name.name='tone'] > Literal[value!=/^(?:ink|paper)$/]",
+        "message": "<BoardFrame> tone must be one of 'ink' | 'paper'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='BoardFrame'] > JSXAttribute[name.name='surface'] > Literal[value!=/^(?:scene|white)$/]",
+        "message": "<BoardFrame> surface must be one of 'scene' | 'white'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Button'] > JSXAttribute > JSXIdentifier[name!=/^(?:variant|size|disabled|tone|href|children|style|key|ref|className|style|children)$/]",
+        "message": "<Button> doesn't accept that prop. Declared props: variant, size, disabled, tone, href, children, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Button'] > JSXAttribute[name.name='variant'] > Literal[value!=/^(?:primary|accent|chip)$/]",
+        "message": "<Button> variant must be one of 'primary' | 'accent' | 'chip'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Button'] > JSXAttribute[name.name='size'] > Literal[value!=/^(?:lg|md)$/]",
+        "message": "<Button> size must be one of 'lg' | 'md'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Button'] > JSXAttribute[name.name='tone'] > Literal[value!=/^(?:paper|ink)$/]",
+        "message": "<Button> tone must be one of 'paper' | 'ink'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ConceptState'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|fg|titleFg|bg|border|dot|key|ref|className|style|children)$/]",
+        "message": "<ConceptState> doesn't accept that prop. Declared props: label, fg, titleFg, bg, border, dot."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Eyebrow'] > JSXAttribute > JSXIdentifier[name!=/^(?:tone|children|key|ref|className|style|children)$/]",
+        "message": "<Eyebrow> doesn't accept that prop. Declared props: tone, children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Eyebrow'] > JSXAttribute[name.name='tone'] > Literal[value!=/^(?:paper|ink)$/]",
+        "message": "<Eyebrow> tone must be one of 'paper' | 'ink'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Field'] > JSXAttribute > JSXIdentifier[name!=/^(?:id|label|type|required|placeholder|name|autoComplete|key|ref|className|style|children)$/]",
+        "message": "<Field> doesn't accept that prop. Declared props: id, label, type, required, placeholder, name, autoComplete."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='LeadForm'] > JSXAttribute > JSXIdentifier[name!=/^(?:orgLabel|connected|onSubmit|key|ref|className|style|children)$/]",
+        "message": "<LeadForm> doesn't accept that prop. Declared props: orgLabel, connected, onSubmit."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='StepProgress'] > JSXAttribute > JSXIdentifier[name!=/^(?:current|total|key|ref|className|style|children)$/]",
+        "message": "<StepProgress> doesn't accept that prop. Declared props: current, total."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='TodoCopy'] > JSXAttribute > JSXIdentifier[name!=/^(?:what|owner|key|ref|className|style|children)$/]",
+        "message": "<TodoCopy> doesn't accept that prop. Declared props: what, owner."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='WhatsAppCta'] > JSXAttribute > JSXIdentifier[name!=/^(?:number|key|ref|className|style|children)$/]",
+        "message": "<WhatsAppCta> doesn't accept that prop. Declared props: number."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/index.js"
+      ],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ],
+  "x-omelette": {
+    "components": {
+      "BoardFrame": {
+        "replaces": []
+      },
+      "Button": {
+        "replaces": []
+      },
+      "ConceptState": {
+        "replaces": []
+      },
+      "Eyebrow": {
+        "replaces": []
+      },
+      "Field": {
+        "replaces": []
+      },
+      "LeadForm": {
+        "replaces": []
+      },
+      "StepProgress": {
+        "replaces": []
+      },
+      "TodoCopy": {
+        "replaces": []
+      },
+      "WhatsAppCta": {
+        "replaces": []
+      }
+    },
+    "tokens": [
+      "--accent",
+      "--accent-marketing",
+      "--accent-secondary",
+      "--accent-strong",
+      "--border-default",
+      "--color-board",
+      "--color-ink",
+      "--color-ink-2",
+      "--color-ink-muted",
+      "--color-line",
+      "--color-olive",
+      "--color-olive-tint",
+      "--color-on-ink",
+      "--color-on-ink-muted",
+      "--color-paper",
+      "--color-pill-from",
+      "--color-pill-to",
+      "--color-sage",
+      "--color-sage-deep",
+      "--color-sage-tint",
+      "--color-scene",
+      "--color-scene-deep",
+      "--color-scene-line",
+      "--color-teal",
+      "--color-teal-deep",
+      "--color-teal-on-ink",
+      "--color-teal-press",
+      "--color-teal-tint",
+      "--dur-base",
+      "--dur-fast",
+      "--dur-instant",
+      "--dur-reveal",
+      "--dur-slow",
+      "--ease-karka-in-out",
+      "--ease-karka-out",
+      "--focus-ring",
+      "--font-display",
+      "--font-mono",
+      "--font-sans",
+      "--hit-target",
+      "--hit-target-lg",
+      "--leading-body",
+      "--leading-caption",
+      "--leading-display",
+      "--leading-eyebrow",
+      "--leading-h2",
+      "--leading-h3",
+      "--leading-lead",
+      "--nudge-md",
+      "--nudge-sm",
+      "--radius-board",
+      "--radius-card",
+      "--radius-field",
+      "--radius-pill",
+      "--shadow-board",
+      "--spacing-gutter",
+      "--spacing-gutter-lg",
+      "--spacing-section",
+      "--spacing-section-lg",
+      "--state-pending-bg",
+      "--state-pending-fg",
+      "--state-secured-bg",
+      "--state-secured-fg",
+      "--surface-card",
+      "--surface-inverse",
+      "--surface-page",
+      "--surface-scene",
+      "--text-body",
+      "--text-body-color",
+      "--text-caption",
+      "--text-display",
+      "--text-eyebrow",
+      "--text-h2",
+      "--text-h3",
+      "--text-lead",
+      "--text-muted",
+      "--tracking-display",
+      "--tracking-eyebrow"
+    ],
+    "tokenKinds": {
+      "--color-ink": "color",
+      "--color-ink-2": "color",
+      "--color-ink-muted": "color",
+      "--color-on-ink": "color",
+      "--color-on-ink-muted": "color",
+      "--color-paper": "color",
+      "--color-board": "color",
+      "--color-line": "color",
+      "--color-teal": "color",
+      "--color-teal-deep": "color",
+      "--color-teal-press": "color",
+      "--color-teal-tint": "color",
+      "--color-teal-on-ink": "color",
+      "--color-pill-from": "color",
+      "--color-pill-to": "color",
+      "--color-scene": "color",
+      "--color-scene-deep": "color",
+      "--color-scene-line": "color",
+      "--color-sage": "color",
+      "--color-sage-deep": "color",
+      "--color-sage-tint": "color",
+      "--color-olive": "color",
+      "--color-olive-tint": "color",
+      "--text-body-color": "font",
+      "--text-muted": "font",
+      "--surface-page": "color",
+      "--surface-card": "color",
+      "--surface-inverse": "color",
+      "--border-default": "color",
+      "--accent": "color",
+      "--accent-strong": "color",
+      "--accent-secondary": "color",
+      "--accent-marketing": "color",
+      "--surface-scene": "color",
+      "--state-secured-bg": "color",
+      "--state-secured-fg": "color",
+      "--state-pending-bg": "color",
+      "--state-pending-fg": "color",
+      "--focus-ring": "color",
+      "--font-display": "font",
+      "--font-sans": "font",
+      "--font-mono": "font",
+      "--text-eyebrow": "font",
+      "--leading-eyebrow": "font",
+      "--text-caption": "font",
+      "--leading-caption": "font",
+      "--text-body": "font",
+      "--leading-body": "font",
+      "--text-lead": "spacing",
+      "--leading-lead": "font",
+      "--text-h3": "spacing",
+      "--leading-h3": "font",
+      "--text-h2": "spacing",
+      "--leading-h2": "font",
+      "--text-display": "spacing",
+      "--leading-display": "font",
+      "--tracking-eyebrow": "font",
+      "--tracking-display": "font",
+      "--spacing-gutter": "spacing",
+      "--spacing-gutter-lg": "spacing",
+      "--spacing-section": "spacing",
+      "--spacing-section-lg": "spacing",
+      "--radius-card": "radius",
+      "--radius-board": "radius",
+      "--radius-field": "radius",
+      "--radius-pill": "radius",
+      "--shadow-board": "shadow",
+      "--hit-target": "spacing",
+      "--hit-target-lg": "spacing",
+      "--dur-instant": "other",
+      "--dur-fast": "other",
+      "--dur-base": "other",
+      "--dur-slow": "other",
+      "--dur-reveal": "other",
+      "--ease-karka-out": "other",
+      "--ease-karka-in-out": "other",
+      "--nudge-sm": "spacing",
+      "--nudge-md": "spacing"
+    },
+    "fontFamilies": [
+      "Source Serif 4"
+    ]
+  }
+}

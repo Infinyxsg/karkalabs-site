@@ -1,0 +1,52 @@
+/* KarkaLabs colours — from KarkaLabs_brand.docx + karkalabs-site src/styles/index.css @theme.
+   Sage and Olive fail AA for small text on light grounds — use --color-sage-deep for small text
+   on paper, and olive only on ink or as a fill behind ink text. */
+:root{
+  /* Base */
+  --color-ink:#1a232b;          /* Karka Ink — primary text, dark section grounds */
+  --color-ink-2:#243039;        /* raised surface on ink */
+  --color-ink-muted:#5b6670;    /* secondary text on light */
+  --color-on-ink:#f4f3ee;       /* text on ink */
+  --color-on-ink-muted:#aeb5ba; /* secondary text on ink */
+  --color-paper:#f7f6f1;        /* page ground */
+  --color-board:#ffffff;        /* the board + cards */
+  --color-line:#dad8cf;         /* hairlines, card borders */
+  /* PRODUCT ACCENT — sampled from the board stills (Demo videos/O level, 2026-08-12).
+     The board's accent is TEAL, not sage. */
+  --color-teal:#147d7b;         /* board accent — eyebrows, emphasis text, active state */
+  --color-teal-deep:#0f6564;    /* particles; accent fills carrying on-ink text (6.2:1) */
+  --color-teal-press:#0b4d4c;   /* accent fill, hover/press */
+  --color-teal-tint:#e3efef;    /* teal wash */
+  --color-teal-on-ink:#5fb3b1;  /* teal lightened for AA small text on the ink ground */
+  --color-pill-from:#1f8673;    /* active tab pill, gradient start (teal) */
+  --color-pill-to:#2d9269;      /* active tab pill, gradient end (green) */
+  --color-scene:#eef2f4;        /* the board scene ground — flat pale blue-grey */
+  --color-scene-deep:#dfe8ee;   /* scene ground, denser variant */
+  --color-scene-line:#9fbccd;   /* scene hairlines / muted scene labels */
+
+  /* BRAND MARKS + MARKETING SITE — sage/olive are the wordmark gradient (KarkaLabs_brand.docx)
+     and the marketing site's accents. They do NOT appear anywhere on the board. */
+  --color-sage:#788c5b;         /* Sage Green — wordmark gradient start, marketing accent */
+  --color-sage-deep:#4f6139;    /* AA-safe sage for small text on paper */
+  --color-sage-tint:#e7ecdd;    /* sage wash — secured/positive fills */
+  --color-olive:#b7a06a;        /* Olive Gold — wordmark gradient end, progress, focus ring */
+  --color-olive-tint:#f2ecdc;   /* olive wash — pending/TODO fills */
+
+  /* Semantic aliases */
+  --text-body-color:var(--color-ink);
+  --text-muted:var(--color-ink-muted);
+  --surface-page:var(--color-paper);
+  --surface-card:var(--color-board);
+  --surface-inverse:var(--color-ink);
+  --border-default:var(--color-line);
+  --accent:var(--color-teal);              /* product accent — the board's teal */
+  --accent-strong:var(--color-teal-deep);
+  --accent-secondary:var(--color-olive);
+  --accent-marketing:var(--color-sage-deep); /* marketing site + wordmark only */
+  --surface-scene:var(--color-scene);
+  --state-secured-bg:var(--color-sage-tint);
+  --state-secured-fg:var(--color-sage-deep);
+  --state-pending-bg:var(--color-olive-tint);
+  --state-pending-fg:var(--color-ink);
+  --focus-ring:2px solid var(--color-olive);
+}

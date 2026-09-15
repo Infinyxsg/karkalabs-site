@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- frame-ancestors is ignored in a meta CSP (browsers only honour it as a response header) — see docs/EMBED_CONTRACT.md §3. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<title>Karka board: placeholder scene</title>
+<style>
+  /* The board's palette (handoff/tokens/colors.css): flat scene ground, no grid, teal emphasis. */
+  html, body { margin: 0; height: 100%; background: #EEF2F4; overflow: hidden; }
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+  canvas { display: block; width: 100%; height: 100%; }
+  .badge { position: absolute; top: 10px; left: 12px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 10px;
+           font-weight: 600; line-height: 1; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap;
+           color: #0F6564; background: #E3EFEF; padding: 5px 8px; border-radius: 9999px; }
+  .dev { position: absolute; right: 10px; bottom: 10px; display: none; gap: 6px; }
+  body.standalone .dev { display: flex; }
+  .dev button { font-family: inherit; font-size: 13px; font-weight: 600; line-height: 1; padding: 8px 12px;
+                border-radius: 9999px; border: 1px solid #9FBCCD; background: #fff; cursor: pointer; }
+</style>
+</head>
+<body>
+<canvas id="board" aria-hidden="true"></canvas>
+<div class="badge">Placeholder scene · parabola in 6 steps</div>
+<div class="dev" aria-label="Dev controls (standalone only)">
+  <button type="button" data-act="prev">Prev</button>
+  <button type="button" data-act="play">Play</button>
+  <button type="button" data-act="next">Next</button>
+</div>
+<script>
+/*
+ * Stand-in for the Karka frontend's /embed/ route (docs/EMBED_CONTRACT.md).
+ * Implements the same postMessage contract so the site lane can be built and gated first:
+ *   parent → frame  {cmd:'play'|'pause'|'reset'|'step'|'unmute'|'mute', n?}
+ *   frame → parent  {evt:'ready', n:<total steps>}  {evt:'step', n:<current step>}
+ * Step 0 = the ball at launch, paused (the semantics the cbse11-embed lane announced for /embed/).
+ * No network, no storage, no audio.
+ */
+(() => {
+  'use strict';
+  const STEPS = 6;
+  const AUTOPLAY_MS = 2200;
+  const DRAW_MS = 700;
+  const ALLOWED = new Set([location.origin, 'https://karkalabs.ai', 'https://www.karkalabs.ai']);
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const framed = window.parent !== window;
+  const parentOrigin = (() => {
+    try {
+      const o = document.referrer ? new URL(document.referrer).origin : location.origin;
+      return ALLOWED.has(o) ? o : null;
+    } catch { return null; }
+  })();
+
+  // Stopgap for the missing frame-ancestors header (docs/EMBED_CONTRACT.md §3): refuse to run under
+  // any ancestor that isn't allowlisted. Chromium/Safari expose every ancestor; Firefox only gives
+  // the referrer, and an unknown ancestor fails closed.
+  if (framed) {
+    const ancestors = location.ancestorOrigins ? Array.from(location.ancestorOrigins) : [parentOrigin];
+    if (ancestors.length === 0 || ancestors.some((o) => !o || !ALLOWED.has(o))) {
+      document.body.dataset.blocked = 'true';
+      document.body.replaceChildren();
+      return;
+    }
+  }
+
+  // Projectile with range 1 (world units): y = tanθ·x·(1 − x); velocity (1, tanθ·(1 − 2x)) up to scale.
+  const THETA = 52 * Math.PI / 180;
+  const TAN = Math.tan(THETA);
+  const APEX = TAN / 4;
+  const VK = 0.2; // world length per unit of horizontal velocity
+  const yAt = (x) => TAN * x * (1 - x);
+  const vyAt = (x) => TAN * (1 - 2 * x);
+
+  // The board's palette: teal emphasis, amber-brown horizontal arrow, scene hairlines.
+  const C = { ink: '#1A232B', ground: '#9FBCCD', teal: '#147D7B', tealDeep: '#0F6564', across: '#B66B13',
+              brick: '#B4533C', muted: '#5B6670', faint: '#9FBCCD', card: '#FFFFFF' };
+
+  const canvas = document.getElementById('board');
+  const ctx = canvas.getContext('2d');
+  let W = 0, H = 0;
+  let step = 0, anim = 1, animStart = 0, raf = 0, timer = 0;
+
+  function resize() {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = canvas.clientWidth; H = canvas.clientHeight;
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw();
+  }
+
+  function layout() {
+    const padL = W * 0.1, padR = W * 0.1, padT = H * 0.24, padB = H * 0.16;
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+    const s = Math.min(plotW, plotH / APEX);
+    return { s, ox: padL + (plotW - s) / 2, oy: H - padB, fs: Math.max(11, Math.min(16, s * 0.042)) };
+  }
+  const P = (L, x, y) => [L.ox + x * L.s, L.oy - y * L.s];
+  const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+
+  function text(L, str, x, y, color, align = 'left', weight = 600) {
+    ctx.font = `${weight} ${L.fs}px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif`;
+    ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = 'middle';
+    ctx.fillText(str, x, y);
+  }
+
+  function arrow(L, [x, y], [dx, dy], color, t, label, labelOffset = [6, -10]) {
+    if (t <= 0) return;
+    const [x0, y0] = P(L, x, y);
+    const [x1, y1] = P(L, x + dx * t, y + dy * t);
+    const len = Math.hypot(x1 - x0, y1 - y0);
+    ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    if (len > 8) {
+      const a = Math.atan2(y1 - y0, x1 - x0), h = Math.min(10, len * 0.4);
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x1 - h * Math.cos(a - 0.45), y1 - h * Math.sin(a - 0.45));
+      ctx.lineTo(x1 - h * Math.cos(a + 0.45), y1 - h * Math.sin(a + 0.45));
+      ctx.closePath(); ctx.fill();
+    }
+    if (label && t > 0.6) text(L, label, x1 + labelOffset[0], y1 + labelOffset[1], color);
+  }
+
+  function dot(L, x, y, color, r = 5) {
+    const [px, py] = P(L, x, y);
+    ctx.fillStyle = color; ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function curve(L, a, b) {
+    if (b <= a) return;
+    ctx.strokeStyle = C.teal; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    for (let x = a; x <= b + 1e-9; x += 0.005) {
+      const [px, py] = P(L, Math.min(x, b), yAt(Math.min(x, b)));
+      x === a ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+
+  function dashed(L, [x0, y0], [x1, y1], color) {
+    const [a, b] = P(L, x0, y0), [c, d] = P(L, x1, y1);
+    ctx.save(); ctx.setLineDash([4, 5]); ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(c, d); ctx.stroke(); ctx.restore();
+  }
+
+  function ground(L) {
+    ctx.strokeStyle = C.ground; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(0, L.oy); ctx.lineTo(W, L.oy); ctx.stroke();
+  }
+
+  function draw() {
+    if (!W || !H) return;
+    const L = layout();
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#EEF2F4'; ctx.fillRect(0, 0, W, H);
+    ground(L);
+    const e = easeOut(Math.min(1, anim));
+    const k = (n) => (step > n ? 1 : step === n ? e : 0);
+
+    // 0 — the ball at launch
+    dot(L, 0, 0, C.tealDeep, 6);
+    // 1 — velocity at launch
+    if (k(1)) {
+      ctx.globalAlpha = step >= 2 ? 0.35 : 1;
+      arrow(L, [0, 0], [VK, VK * TAN], C.ink, k(1), 'v', [8, -4]);
+      ctx.globalAlpha = 1;
+    }
+    // 2 — split into components
+    if (k(2)) {
+      dashed(L, [VK, 0], [VK, VK * TAN], C.faint);
+      dashed(L, [0, VK * TAN], [VK, VK * TAN], C.faint);
+      arrow(L, [0, 0], [VK, 0], C.across, k(2), 'vₓ', [4, 14]);
+      arrow(L, [0, 0], [0, VK * TAN], C.teal, k(2), 'vᵧ', [-24, 0]);
+    }
+    // 3 — rising: only the vertical part shrinks
+    if (k(3)) {
+      curve(L, 0, 0.5 * k(3));
+      if (k(3) > 0.5) {
+        const x = 0.25, y = yAt(x);
+        arrow(L, [x, y], [VK, 0], C.across, 1);
+        arrow(L, [x, y], [0, VK * vyAt(x)], C.teal, 1);
+      }
+    }
+    // 4 — the claim: "v = 0 at the top?"
+    if (k(4)) {
+      dot(L, 0.5, APEX, C.tealDeep);
+      ctx.globalAlpha = k(4);
+      const [px, py] = P(L, 0.5, APEX);
+      const label = 'v = 0 at the top?';
+      ctx.font = `600 ${L.fs}px ui-sans-serif, system-ui, sans-serif`;
+      const w = ctx.measureText(label).width + 20, h = L.fs + 16;
+      const bx = px - w / 2, by = py - h - L.fs * 1.6;
+      ctx.strokeStyle = C.brick; ctx.lineWidth = 1.5; ctx.fillStyle = C.card;
+      ctx.beginPath(); ctx.roundRect(bx, by, w, h, 8); ctx.fill(); ctx.stroke();
+      text(L, label, px, by + h / 2, C.brick, 'center');
+      // 5 — strike the claim
+      if (k(5)) {
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = C.brick; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(bx + 8, by + h / 2); ctx.lineTo(bx + 8 + (w - 16) * k(5), by + h / 2); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+    // 5 — at the top: vᵧ = 0, vₓ unchanged
+    if (k(5)) {
+      arrow(L, [0.5, APEX], [VK, 0], C.across, k(5), 'vₓ unchanged', [6, -12]);
+      if (k(5) > 0.6) {
+        const [px, py] = P(L, 0.5, APEX);
+        text(L, 'vᵧ = 0', px - 8, py + L.fs * 1.2, C.teal, 'right');
+      }
+    }
+    // 6 — falling: same curve mirrored, landing
+    if (k(6)) {
+      curve(L, 0.5, 0.5 + 0.5 * k(6));
+      dashed(L, [0.5, 0], [0.5, APEX], C.faint);
+      if (k(6) > 0.5) {
+        const x = 0.75, y = yAt(x);
+        arrow(L, [x, y], [VK, 0], C.across, 1);
+        arrow(L, [x, y], [0, VK * vyAt(x)], C.teal, 1);
+      }
+      if (k(6) >= 1) {
+        dot(L, 1, 0, C.tealDeep);
+        const [px, py] = P(L, 0.86, yAt(0.86));
+        text(L, 'parabola', px + 10, py - 6, C.ink, 'left', 700);
+      }
+    }
+  }
+
+  function tick(now) {
+    anim = Math.min(1, (now - animStart) / DRAW_MS);
+    draw();
+    raf = anim < 1 ? requestAnimationFrame(tick) : 0;
+  }
+
+  function post(msg) {
+    if (framed && parentOrigin) window.parent.postMessage(msg, parentOrigin);
+  }
+
+  function setStep(n, animate = true) {
+    n = Math.max(0, Math.min(STEPS, Math.round(Number(n) || 0)));
+    if (n !== step) {
+      step = n;
+      if (animate && !reduced) {
+        animStart = performance.now(); anim = 0;
+        if (!raf) raf = requestAnimationFrame(tick);
+      } else { anim = 1; draw(); }
+    }
+    document.body.dataset.step = String(step);
+    post({ evt: 'step', n: step });
+  }
+
+  function play() {
+    if (timer || reduced) return;
+    if (step === 0 || step >= STEPS) setStep(1);
+    timer = setInterval(() => {
+      if (step >= STEPS) { pause(); return; }
+      setStep(step + 1);
+    }, AUTOPLAY_MS);
+  }
+  function pause() { clearInterval(timer); timer = 0; }
+
+  window.addEventListener('message', (e) => {
+    if (e.source !== window.parent || !ALLOWED.has(e.origin)) return;
+    const d = e.data;
+    if (!d || typeof d.cmd !== 'string') return;
+    document.body.dataset.lastCmd = d.cmd;
+    switch (d.cmd) {
+      case 'play': play(); break;
+      case 'pause': pause(); break;
+      case 'reset': pause(); setStep(0, false); break;
+      case 'step': pause(); setStep(d.n); break;
+      case 'unmute': document.body.dataset.voice = 'on'; break;   // placeholder has no voice
+      case 'mute': document.body.dataset.voice = 'off'; break;
+    }
+  });
+
+  // Standalone (opened directly): dev controls + ?step=N for poster renders.
+  if (!framed) {
+    document.body.classList.add('standalone');
+    document.querySelector('.dev').addEventListener('click', (e) => {
+      const act = e.target && e.target.dataset && e.target.dataset.act;
+      if (act === 'prev') setStep(step - 1);
+      if (act === 'next') setStep(step + 1);
+      if (act === 'play') { pause(); setStep(0, false); play(); }
+    });
+  }
+
+  new ResizeObserver(resize).observe(canvas);
+  resize();
+  const initial = new URLSearchParams(location.search).get('step');
+  if (initial !== null) setStep(initial, false);
+  post({ evt: 'ready', n: STEPS });
+  window.__placeholder = { setStep, get step() { return step; }, STEPS };
+})();
+</script>
+</body>
+</html>

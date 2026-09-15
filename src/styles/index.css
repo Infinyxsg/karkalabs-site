@@ -1,0 +1,159 @@
+@import "tailwindcss";
+
+/*
+ * DESIGN TOKENS — generated from handoff/tokens/*.css (the KarkaLabs design system, Claude Design
+ * handoff, committed in handoff/). Direction of truth: design system → site (handoff/readme.md).
+ * Change a token there, re-export the handoff, regenerate this block. Never edit here first.
+ *
+ * Mapping into Tailwind v4 namespaces (names otherwise verbatim):
+ *   --leading-X          → --text-X--line-height
+ *   --hit-target(-lg)    → --spacing-hit-target(-lg)     (min-h-hit-target, min-h-hit-target-lg)
+ * Non-namespaced tokens (durations, nudges, semantic aliases, focus ring) sit in :root below.
+ * Removed in 039 as site-only (not in the bundle): --spacing-hero.
+ */
+@theme {
+  /* colors.css — base */
+  --color-ink: #1a232b;
+  --color-ink-2: #243039;
+  --color-ink-muted: #5b6670;
+  --color-on-ink: #f4f3ee;
+  --color-on-ink-muted: #aeb5ba;
+  --color-paper: #f7f6f1;
+  --color-board: #ffffff;
+  --color-line: #dad8cf;
+  /* colors.css — product accent: the board's teal */
+  --color-teal: #147d7b;
+  --color-teal-deep: #0f6564;
+  --color-teal-press: #0b4d4c;
+  --color-teal-tint: #e3efef;
+  --color-teal-on-ink: #5fb3b1;
+  --color-pill-from: #1f8673;
+  --color-pill-to: #2d9269;
+  --color-scene: #eef2f4;
+  --color-scene-deep: #dfe8ee;
+  --color-scene-line: #9fbccd;
+  /* colors.css — brand marks: sage + olive are the wordmark gradient; beyond it, state washes only */
+  --color-sage: #788c5b;
+  --color-sage-deep: #4f6139;
+  --color-sage-tint: #e7ecdd;
+  --color-olive: #b7a06a;
+  --color-olive-tint: #f2ecdc;
+
+  /* typography.css */
+  --font-display: "Source Serif 4", "Source Serif 4 Variable", Georgia, "Times New Roman", serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, Menlo, Consolas, monospace;
+  --text-eyebrow: 0.75rem;
+  --text-eyebrow--line-height: 1.2;
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1.35;
+  --text-body: 1rem;
+  --text-body--line-height: 1.55;
+  --text-lead: clamp(1.125rem, 1.05rem + 0.35vw, 1.3125rem);
+  --text-lead--line-height: 1.45;
+  --text-h3: clamp(1.25rem, 1.15rem + 0.45vw, 1.5rem);
+  --text-h3--line-height: 1.25;
+  --text-h2: clamp(1.875rem, 1.45rem + 1.75vw, 3rem);
+  --text-h2--line-height: 1.08;
+  --text-display: clamp(2.375rem, 1.6rem + 3.2vw, 4.5rem);
+  --text-display--line-height: 1.02;
+  --tracking-eyebrow: 0.14em;
+  --tracking-display: -0.015em;
+
+  /* spacing.css */
+  --spacing-gutter: 1.25rem;
+  --spacing-gutter-lg: 2.5rem;
+  --spacing-section: 5rem;
+  --spacing-section-lg: 8rem;
+  --spacing-hit-target: 2.75rem;
+  --spacing-hit-target-lg: 3rem;
+  --radius-card: 1rem;
+  --radius-board: 1.25rem;
+  --radius-field: 0.5rem;
+  --radius-pill: 9999px;
+  --shadow-board: 0 1px 2px rgb(26 35 43 / 0.08), 0 18px 48px -18px rgb(0 0 0 / 0.55);
+
+  /* motion.css — easings */
+  --ease-karka-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-karka-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+:root {
+  /* motion.css (JS mirror: src/design/tokens.ts) */
+  --dur-instant: 120ms;
+  --dur-fast: 200ms;
+  --dur-base: 360ms;
+  --dur-slow: 600ms;
+  --dur-reveal: 800ms;
+  --nudge-sm: 6px;
+  --nudge-md: 16px;
+
+  /* colors.css — semantic aliases */
+  --text-body-color: var(--color-ink);
+  --text-muted: var(--color-ink-muted);
+  --surface-page: var(--color-paper);
+  --surface-card: var(--color-board);
+  --surface-inverse: var(--color-ink);
+  --border-default: var(--color-line);
+  --accent: var(--color-teal);
+  --accent-strong: var(--color-teal-deep);
+  --accent-secondary: var(--color-olive);
+  --accent-marketing: var(--color-sage-deep);
+  --surface-scene: var(--color-scene);
+  --state-secured-bg: var(--color-sage-tint);
+  --state-secured-fg: var(--color-sage-deep);
+  --state-pending-bg: var(--color-olive-tint);
+  --state-pending-fg: var(--color-ink);
+  --focus-ring: 2px solid var(--color-olive);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-instant: 0ms;
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+    --dur-slow: 0ms;
+    --dur-reveal: 0ms;
+  }
+}
+
+/* base.css */
+@layer base {
+  html {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  :focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 3px;
+  }
+
+  a {
+    color: var(--color-sage-deep);
+  }
+
+  a:hover {
+    color: var(--color-ink);
+  }
+}
+
+/* base.css — the board's flat scene ground. No grid: the real board has none. */
+.board-grid {
+  background-color: var(--color-scene);
+}
+
+/* Lenis — recommended base styles (not design tokens). */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis:not(.lenis-autoToggle).lenis-stopped {
+  overflow: clip;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}

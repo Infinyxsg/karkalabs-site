@@ -1,0 +1,86 @@
+import { useEffect } from 'react';
+import { LazyMotion, MotionConfig, domAnimation } from 'framer-motion';
+import { useReducedMotion } from './lib/useReducedMotion';
+import { Hero } from './sections/Hero';
+import { PinnedScene } from './sections/PinnedScene';
+import { AudienceSection } from './sections/AudienceSection';
+import { SiteFooter, SiteHeader } from './sections/SiteChrome';
+import { LOOPS, NARRATION, SCENE_PICKS, SCHOOLS_PANEL, STUDENTS_PANEL } from './embed/config';
+import { licensingHref, schoolDemoHref, whatsappHref } from './content/contact';
+import { parents, schools, students, tuition } from './content/copy';
+
+export function App() {
+  const reduced = useReducedMotion();
+
+  // Smooth scroll only when motion is welcome; the engine loads as its own chunk after first paint.
+  useEffect(() => {
+    if (reduced) return;
+    let cancelled = false;
+    let stop: (() => void) | undefined;
+    void import('./lib/smoothScroll').then(({ startSmoothScroll }) => {
+      if (!cancelled) stop = startSmoothScroll();
+    });
+    return () => {
+      cancelled = true;
+      stop?.();
+    };
+  }, [reduced]);
+
+  // 040 §C: v1 shows the muted loop (C2); the live embed (C1) is the same section, switched by config.
+  const loop = STUDENTS_PANEL === 'video';
+
+  return (
+    <MotionConfig reducedMotion="user">
+      <LazyMotion features={domAnimation} strict>
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-pill focus:bg-ink focus:px-4 focus:py-2 focus:text-on-ink"
+        >
+          Skip to content
+        </a>
+        <SiteHeader />
+        <main id="main">
+          <Hero />
+          <PinnedScene
+            id="students"
+            audience="students"
+            scene={SCENE_PICKS.students}
+            variant="student"
+            panel={STUDENTS_PANEL}
+            loop={LOOPS.students}
+            eyebrow={students.eyebrow}
+            headline={students.headline}
+            line={students.body}
+            tutor={students.tutor}
+            frameTitle={loop ? students.loop.title : students.embed.frameTitle}
+            captionLabel={loop ? students.loop.captionLabel : undefined}
+            poster={loop ? students.loop.poster : students.embed.poster}
+            captions={loop ? students.loop.captions : students.embed.captions}
+            narration={NARRATION.students}
+          />
+          <AudienceSection id="parents" content={parents} href={whatsappHref} />
+          {SCHOOLS_PANEL === 'classroom' ? (
+            <PinnedScene
+              id="schools"
+              audience="schools"
+              scene={SCENE_PICKS.schools}
+              variant="classroom"
+              eyebrow={schools.eyebrow}
+              headline={schools.headline}
+              line={schools.body}
+              tutor={schools.classroom.tutor}
+              frameTitle={schools.classroom.frameTitle}
+              poster={students.embed.poster}
+              captions={students.embed.captions}
+              classroom={schools.classroom}
+            />
+          ) : (
+            <AudienceSection id="schools" content={schools} href={schoolDemoHref} tone="ink" />
+          )}
+          <AudienceSection id="tuition" content={tuition} href={licensingHref} />
+        </main>
+        <SiteFooter />
+      </LazyMotion>
+    </MotionConfig>
+  );
+}

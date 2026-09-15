@@ -1,0 +1,15 @@
+/* Motion — CSS mirrors of src/design/tokens.ts (duration, ease). */
+:root{
+  --dur-instant:120ms; /* @kind other */
+  --dur-fast:200ms; /* @kind other */
+  --dur-base:360ms; /* @kind other */
+  --dur-slow:600ms; /* @kind other */
+  --dur-reveal:800ms; /* @kind other */
+  --ease-karka-out:cubic-bezier(0.22,1,0.36,1); /* @kind other */
+  --ease-karka-in-out:cubic-bezier(0.65,0,0.35,1); /* @kind other */
+  --nudge-sm:6px;  /* enter/exit y-offset, small */
+  --nudge-md:16px; /* section reveals */
+}
+@media (prefers-reduced-motion:reduce){
+  :root{--dur-instant:0ms; /* @kind other */ --dur-fast:0ms; /* @kind other */ --dur-base:0ms; /* @kind other */ --dur-slow:0ms; /* @kind other */ --dur-reveal:0ms /* @kind other */}
+}

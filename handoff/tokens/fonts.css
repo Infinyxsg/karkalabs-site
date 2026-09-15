@@ -1,0 +1,4 @@
+/* Display face: Source Serif 4 Variable. The site loads it from @fontsource-variable/source-serif-4;
+   no binaries were shipped with the sources, so this pulls the SAME typeface from Google Fonts.
+   Replace with self-hosted @font-face rules if font files are provided. */
+@import url("https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400..700&display=swap");

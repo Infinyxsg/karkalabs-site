@@ -1,0 +1,18 @@
+/* Spacing (4px grid is the base; these are the named layout steps), shape + shadow. */
+:root{
+  --spacing-gutter:1.25rem;
+  --spacing-gutter-lg:2.5rem;
+  --spacing-section:5rem;
+  --spacing-section-lg:8rem;
+
+  --radius-card:1rem;     /* cards, caption tracks, form fields use 0.5rem (rounded-lg) */
+  --radius-board:1.25rem; /* the board frame */
+  --radius-field:0.5rem;
+  --radius-pill:9999px;   /* buttons + chips are full pills */
+
+  --shadow-board:0 1px 2px rgb(26 35 43 / 0.08),0 18px 48px -18px rgb(0 0 0 / 0.55);
+
+  /* Minimum hit targets (mobile-first) */
+  --hit-target:2.75rem;      /* 44px — chips, secondary */
+  --hit-target-lg:3rem;      /* 48px — primary buttons, fields */
+}

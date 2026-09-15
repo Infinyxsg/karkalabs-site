@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Marketing page" description="KarkaLabs marketing page: board-grid hero, ink board section, audience sections with lead capture." -->
+<helmet><script src="./ds-base.js"></script><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400..700&display=swap"><style>body{margin:0;background:#f7f6f1}</style></helmet>
+<main style="font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#1a232b">
+<section style="position:relative;overflow:hidden">
+<div aria-hidden="true" style="position:absolute;inset:0;background:#eef2f4"></div>
+<div style="position:relative;max-width:1152px;margin:0 auto;padding:32px 40px 60px;display:flex;flex-direction:column;justify-content:flex-end;gap:24px;min-height:420px">
+<p style="margin:0;font-size:12px;line-height:1.2;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#147d7b">Diya and Aarya listen, understand and guide</p>
+<h1 style="margin:0;max-width:760px;font-family:'Source Serif 4',Georgia,serif;font-size:72px;line-height:1.02;letter-spacing:-0.015em;font-weight:600;text-wrap:balance">Real-time, human-like voice tutors</h1>
+<p style="margin:0;max-width:65ch;font-size:21px;line-height:1.45;color:#5b6670">Learn with AI, not from AI.</p>
+<div style="display:flex;flex-wrap:wrap;gap:8px">
+<x-import component-from-global-scope="KarkaLabsDesignSystem_0a4ecd.Button" variant="chip" size="md" href="#students" hint-size="110px,44px">Students</x-import>
+<x-import component-from-global-scope="KarkaLabsDesignSystem_0a4ecd.Button" variant="chip" size="md" href="#parents" hint-size="105px,44px">Parents</x-import>
+<x-import component-from-global-scope="KarkaLabsDesignSystem_0a4ecd.Button" variant="chip" size="md" href="#schools" hint-size="105px,44px">Schools</x-import>
+<x-import component-from-global-scope="KarkaLabsDesignSystem_0a4ecd.Button" variant="chip" size="md" href="#tuition" hint-size="150px,44px">Tuition centres</x-import>
+</div>
+</div>
+</section>
+<section id="students" data-screen-label="Students" style="background:#1a232b;color:#f4f3ee;padding:80px 0">
+<div style="max-width:1152px;margin:0 auto;padding:0 40px;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:56px;align-items:center">
+<div style="display:flex;flex-direction:column;gap:20px">
+<p style="margin:0;font-size:12px;line-height:1.2;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#b7a06a">For students</p>
+<h2 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:48px;line-height:1.08;letter-spacing:-0.015em;font-weight:600;text-wrap:balance">You say it. Aarya catches it. The board redraws it.</h2>
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+<x-import component-from-global-scope="KarkaLabsDesignSystem_0a4ecd.ConceptChip" state="initial" hint-size="190px,32px"></x-import>
+<x-import component-from-global-scope="KarkaLabsDesignSystem_0a4ecd.StepProgress" current="{{ three }}" total="{{ six }}" hint-size="80px,6px"></x-import>
+</div>
+</div>
+<x-import component-from-global-scope="KarkaLabsDesignSystem_0a4ecd.BoardFrame" tutor="Aarya" tone="ink" aspect="16/10" show-voice="{{ yes }}" caption="Gravity only pulls down. So only the upward part shrinks as the ball rises." hint-size="100%,460px">
+<svg viewBox="0 0 500 260" style="position:absolute;inset:0;width:100%;height:100%" aria-hidden="true"><line x1="24" y1="210" x2="476" y2="210" stroke="#9fbccd" stroke-width="1.5"></line><line x1="40" y1="230" x2="40" y2="36" stroke="#9fbccd" stroke-width="1.5"></line><path d="M40 210 L110 120 L180 70 L250 52 L320 70 L390 120 L460 210" fill="none" stroke="#147d7b" stroke-width="2.5" stroke-linecap="round"></path><circle cx="250" cy="52" r="7" fill="#0f6564"></circle><line x1="250" y1="52" x2="294" y2="52" stroke="#b66b13" stroke-width="2.5"></line></svg>
+</x-import>
+</div>
+</section>
+<section id="parents" data-screen-label="Parents" style="border-top:1px solid #dad8cf;padding:80px 0">
+<div style="max-width:1152px;margin:0 auto;padding:0 40px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:center">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="margin:0;font-size:12px;line-height:1.2;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#147d7b">For parents</p>
+<h2 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:48px;line-height:1.08;letter-spacing:-0.015em;font-weight:600">Parents</h2>
+<x-import component-from-global-scope="KarkaLabsDesignSystem_0a4ecd.TodoCopy" owner="TODO:VB" what="headline and section copy" hint-size="100%,52px"></x-import>
+<x-import component-from-global-scope="KarkaLabsDesignSystem_0a4ecd.WhatsAppCta" hint-size="100%,48px"></x-import>
+</div>
+<x-import component-from-global-scope="KarkaLabsDesignSystem_0a4ecd.BoardFrame" tone="paper" aspect="4/3" poster="../../assets/imagery/student-hero.png" alt="A Karka lesson on screen: a 3D bus ride demonstrating Newton's first law." hint-size="100%,380px"></x-import>
+</div>
+</section>
+<section id="schools" data-screen-label="Schools" style="border-top:1px solid #dad8cf;padding:80px 0">
+<div style="max-width:1152px;margin:0 auto;padding:0 40px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:center">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="margin:0;font-size:12px;line-height:1.2;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#147d7b">For schools</p>
+<h2 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:48px;line-height:1.08;letter-spacing:-0.015em;font-weight:600">Schools</h2>
+<x-import component-from-global-scope="KarkaLabsDesignSystem_0a4ecd.TodoCopy" owner="TODO:VB" what="headline and section copy" hint-size="100%,52px"></x-import>
+<x-import component-from-global-scope="KarkaLabsDesignSystem_0a4ecd.LeadForm" org-label="School" hint-size="100%,420px"></x-import>
+</div>
+<x-import component-from-global-scope="KarkaLabsDesignSystem_0a4ecd.BoardFrame" tone="paper" aspect="4/3" poster="../../assets/imagery/student-hero.png" alt="The Karka principal view: campus-wide curriculum coverage." hint-size="100%,380px"></x-import>
+</div>
+</section>
+<section id="tuition" data-screen-label="Tuition centres" style="border-top:1px solid #dad8cf;padding:80px 0">
+<div style="max-width:1152px;margin:0 auto;padding:0 40px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:center">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="margin:0;font-size:12px;line-height:1.2;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#147d7b">For tuition centres</p>
+<h2 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:48px;line-height:1.08;letter-spacing:-0.015em;font-weight:600">Tuition centres</h2>
+<x-import component-from-global-scope="KarkaLabsDesignSystem_0a4ecd.TodoCopy" owner="TODO:VB" what="headline and section copy" hint-size="100%,52px"></x-import>
+<x-import component-from-global-scope="KarkaLabsDesignSystem_0a4ecd.LeadForm" org-label="Centre" hint-size="100%,420px"></x-import>
+</div>
+<x-import component-from-global-scope="KarkaLabsDesignSystem_0a4ecd.BoardFrame" tone="paper" aspect="4/3" poster="../../assets/imagery/student-hero.png" alt="The Karka mastery board: O-Level Physics topics as nodes." hint-size="100%,380px"></x-import>
+</div>
+</section>
+<footer style="background:#1a232b;padding:40px 0">
+<div style="max-width:1152px;margin:0 auto;padding:0 40px;display:flex;align-items:center;justify-content:space-between;gap:16px">
+<img src="../../assets/brand/wordmark-on-dark.png" alt="KarkaLabs" style="height:26px;width:auto">
+<p style="margin:0;font-size:13px;color:#aeb5ba">Learn with AI, not from AI.</p>
+</div>
+</footer>
+</main>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return { three: 3, six: 6, yes: true };
+  }
+}
+
+</script>
+</body>
+</html>

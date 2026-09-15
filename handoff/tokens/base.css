@@ -1,0 +1,9 @@
+/* Base ground + focus, from karkalabs-site @layer base. */
+html{background:var(--color-paper);color:var(--color-ink);font-family:var(--font-sans);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+:focus-visible{outline:var(--focus-ring);outline-offset:3px}
+a{color:var(--color-sage-deep)}
+a:hover{color:var(--color-ink)}
+/* The board ground: the real board (see reference/still-*.png) is a FLAT pale blue-grey panel —
+   there is no graph-paper grid anywhere in it. Hero.tsx references a `.board-grid` class that the
+   shipped CSS never defines; this is that hook, matched to the stills. */
+.board-grid{background-color:var(--color-scene)}

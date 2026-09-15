@@ -1,0 +1,72 @@
+# karkalabs.ai → GitHub Pages (Settings → Pages → Source: GitHub Actions).
+# Nothing deploys unless the gate job passes: typecheck + build, the Playwright suite (the build
+# that ships, plus the live-embed code path), and Lighthouse mobile (simulated, 3 runs).
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Browsers (Chrome for the suite and Lighthouse, WebKit for the iPhone check)
+        run: npx playwright install --with-deps chrome webkit
+
+      - name: Typecheck + build (dist/)
+        run: npm run build
+
+      - name: Test suite (pretest builds dist-fixture/ for the live-embed path)
+        run: npm test
+
+      - name: Lighthouse mobile, simulated (gate: performance ≥ 90, accessibility 100, CLS < 0.1)
+        run: |
+          node scripts/serve-dist.mjs &
+          for i in $(seq 1 30); do curl -sf http://localhost:4173/ > /dev/null && break; sleep 1; done
+          GATE_DIR=lighthouse-ci npm run gate:lighthouse
+
+      - name: Keep the gate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-evidence
+          path: |
+            lighthouse-ci/
+            docs/gate/040/
+            test-results/
+          if-no-files-found: ignore
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: gate
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
