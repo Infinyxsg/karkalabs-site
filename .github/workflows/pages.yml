@@ -40,7 +40,8 @@ jobs:
       - name: Test suite (pretest builds dist-fixture/ for the live-embed path)
         run: npm test
 
-      - name: Lighthouse mobile, simulated (gate: performance ≥ 90, accessibility 100, CLS < 0.1)
+      # Quoted: an unquoted ": " inside a plain scalar starts a nested mapping (invalid YAML).
+      - name: "Lighthouse mobile, simulated. Gate: performance ≥ 90, accessibility 100, CLS < 0.1"
         run: |
           node scripts/serve-dist.mjs &
           for i in $(seq 1 30); do curl -sf http://localhost:4173/ > /dev/null && break; sleep 1; done
