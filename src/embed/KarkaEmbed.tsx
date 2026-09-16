@@ -50,6 +50,12 @@ export interface KarkaEmbedProps {
   holdCue?: HoldCue;
   /** `fromFrame` = the frame described its own steps (contract v2 `ready.steps`). */
   onReady?: (totalSteps: number, fromFrame: boolean) => void;
+  /**
+   * The mounted frame missed its `ready` deadline, or failed to load. The section hands the panel
+   * to the muted loop when it has one (040 §C.2); with no loop it stays here, on poster +
+   * transcript. Fires once per visit — `fallback` is terminal.
+   */
+  onFallback?: () => void;
   /** The step whose caption is on screen (0 = none) — from narration while it plays, else the frame. */
   onStepShown?: (n: number) => void;
   tone?: 'ink' | 'paper';
@@ -76,8 +82,9 @@ const isRealLine = (say: string) => say.trim() !== '' && !say.trim().startsWith(
 
 /**
  * Captions from the frame's `ready.steps` (contract v2): the frame's `say` line wins; a missing or
- * TODO:VB line falls back to copy.ts. Timings come from copy.ts (they belong to the narration file);
- * a step with no narration timing is never reached by the narration clock.
+ * TODO:VB line falls back to copy.ts. Timings stay with copy.ts, because they belong to a narration
+ * file and the frame's own `t` is null until one is recorded; a step with no timing is never reached
+ * by the narration clock, which is every step while "Hear Aarya" is off.
  */
 export function captionsFromFrame(steps: readonly ReadyStep[], fallback: readonly Caption[]): Caption[] {
   return [...steps]
@@ -106,6 +113,7 @@ export function KarkaEmbed({
   step,
   holdCue,
   onReady,
+  onFallback,
   onStepShown,
   tone = 'ink',
   className,
@@ -138,10 +146,10 @@ export function KarkaEmbed({
   /** What the board should show: the narration's step while it plays, else the parent's scroll step. */
   const boardStep = narrationStep ?? step;
 
-  const callbacks = useRef({ onReady, onStepShown, captions });
+  const callbacks = useRef({ onReady, onFallback, onStepShown, captions });
   const boardStepRef = useRef(boardStep);
   useEffect(() => {
-    callbacks.current = { onReady, onStepShown, captions };
+    callbacks.current = { onReady, onFallback, onStepShown, captions };
     boardStepRef.current = boardStep;
   });
 
@@ -177,7 +185,7 @@ export function KarkaEmbed({
     };
   }, [posterOnly, reduced]);
 
-  // Each mount gets 4s to report ready, else poster for the rest of the visit.
+  // Each mount gets 4s to report ready, else the fallback for the rest of the visit.
   useEffect(() => {
     if (!mounted) return;
     setStatus('loading');
@@ -191,6 +199,11 @@ export function KarkaEmbed({
       setFrameStep(0);
     };
   }, [mounted]);
+
+  // One notification when the panel gives up, whether that was the deadline or a load error.
+  useEffect(() => {
+    if (status === 'fallback') callbacks.current.onFallback?.();
+  }, [status]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -327,11 +340,6 @@ export function KarkaEmbed({
         showVoice={canNarrate}
         voiceOn={playing}
         onToggleVoice={toggleNarration}
-        voiceNote={
-          narration?.placeholder ? (
-            <span className={`text-caption ${tt.index}`}>Placeholder audio · TODO:VB-audio</span>
-          ) : undefined
-        }
       >
         {mounted && (
           <iframe

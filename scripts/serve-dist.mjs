@@ -2,8 +2,12 @@
 // gzip for text assets, `Cache-Control: max-age=600`, HTTP Range (206) for media, and 404.html for
 // any missing path. No per-route headers (Pages can't set them either).
 //   node scripts/serve-dist.mjs            dist/ on :4173 (what ships)
-//   node scripts/serve-dist.mjs --fixture  dist-fixture/ on :4174, plus the test-only stand-ins from
-//                                          tests/fixtures/ (the frame at /embed/, the chime at /audio/)
+//   node scripts/serve-dist.mjs --fixture  dist-fixture/ on :4174, plus the test-only stand-in frame
+//                                          from tests/fixtures/, served at /embed/
+//
+// `/?no-intro` serves index.html with the first-visit intro flag stripped — what a returning visitor
+// in this tab gets, and the only way to measure that path under Lighthouse, which always opens a
+// fresh tab with empty sessionStorage and so always takes the first-visit branch.
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { gzipSync } from 'node:zlib';
@@ -25,7 +29,6 @@ const types = {
   '.woff2': 'font/woff2',
   '.json': 'application/json',
   '.txt': 'text/plain; charset=utf-8',
-  '.m4a': 'audio/mp4',
   '.mp3': 'audio/mpeg',
   '.mp4': 'video/mp4',
 };
@@ -43,9 +46,23 @@ function parseRange(header, size) {
 /** URL path → file on disk, or null if it escapes the served folders. */
 function resolveFile(p) {
   if (fixture && p === '/embed/index.html') return path.join(fixtures, 'embed-placeholder.html');
-  const [base, rel] = fixture && p.startsWith('/audio/') ? [fixtures, p] : [root, p];
-  const file = path.join(base, rel);
-  return file.startsWith(base) ? file : null;
+  const file = path.join(root, p);
+  return file.startsWith(root) ? file : null;
+}
+
+/**
+ * Remove the inline block that raises the first-visit intro flag. That is exactly what a return
+ * visit does: `sessionStorage` already holds the flag, so `html.karka-intro` is never added and
+ * src/lib/intro.ts returns early.
+ *
+ * Matched by content, not by position: the built index.html is minified, so the comment above the
+ * block is gone and its whitespace is collapsed.
+ */
+function stripIntro(html) {
+  const re = /<script>(?:(?!<\/script>)[\s\S])*karka-intro(?:(?!<\/script>)[\s\S])*<\/script>/;
+  const out = html.replace(re, '');
+  if (out === html) throw new Error('serve-dist --no-intro: no inline intro-flag script in index.html');
+  return out;
 }
 
 function send(req, res, status, body, ext) {
@@ -80,7 +97,8 @@ function send(req, res, status, body, ext) {
 
 http
   .createServer(async (req, res) => {
-    let p = decodeURIComponent(new URL(req.url ?? '/', 'http://local').pathname);
+    const requested = new URL(req.url ?? '/', 'http://local');
+    let p = decodeURIComponent(requested.pathname);
     if (p.endsWith('/')) p += 'index.html';
     const file = resolveFile(p);
     if (!file) {
@@ -88,7 +106,9 @@ http
       return;
     }
     try {
-      send(req, res, 200, await readFile(file), path.extname(file));
+      const body = await readFile(file);
+      const noIntro = requested.searchParams.has('no-intro') && p.endsWith('index.html');
+      send(req, res, 200, noIntro ? Buffer.from(stripIntro(body.toString('utf8'))) : body, path.extname(file));
     } catch {
       // Pages serves the site's 404.html for any missing path.
       try {

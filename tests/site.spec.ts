@@ -22,6 +22,12 @@ test.beforeEach(async ({ page }) => {
 });
 
 const loop = students.loop;
+const embed = students.embed;
+/** Where the shipped build points the Students frame (.env, committed). */
+const EMBED_ORIGIN = 'https://cbsephysics11.karkalabs.ai';
+const FRAME_URL = `${EMBED_ORIGIN}/embed/**`;
+
+
 const launchCopy = [
   hero.headline,
   hero.sub,
@@ -106,30 +112,57 @@ test('the contact guard fails the build on empty or malformed targets', () => {
   expect(contactProblems('96470065', 'not-an-email')).toHaveLength(2);
 });
 
-test('v1 ships no placeholder, no embed and no narration', async ({ page, request }) => {
+test('the site ships the live frame only: no stand-in, no narration, nothing served from here', async ({
+  page,
+  request,
+}) => {
   const urls: string[] = [];
   page.on('request', (r) => urls.push(r.url()));
+  // Answer the frame locally: this test is about what THIS build ships, not about the live route.
+  await page.route(FRAME_URL, (route) =>
+    route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>silent frame</title>' }),
+  );
   await page.goto('/');
-  await revealAll(page);
-  await expect(page.locator('iframe')).toHaveCount(0);
+  await lenisTo(page, await pinStart(page, 'students'));
+  // The one frame on the page is the real route, from the origin committed in .env.
+  await expect(page.locator('iframe')).toHaveCount(1);
+  await expect(page.locator('#students iframe')).toHaveAttribute(
+    'src',
+    `${EMBED_ORIGIN}/embed/?scene=p11-proj-two-clocks-one-time&audience=students`,
+  );
+  // "Hear Aarya" is off and the six-chime placeholder is gone: no audio element, no button, no request.
   await expect(page.locator('audio')).toHaveCount(0);
   await expect(page.getByRole('button', { name: /Hear|Mute/ })).toHaveCount(0);
-  expect(urls.filter((u) => /placeholder|\/embed\/|\/audio\//.test(u))).toEqual([]);
+  expect(urls.filter((u) => /placeholder|\/audio\//.test(u))).toEqual([]);
+  // The site serves no frame and no narration of its own; the stand-in is test-only.
   for (const p of ['/embed-placeholder.html', '/embed/', '/audio/two-clocks-narration.placeholder.m4a', '/posters/students-placeholder.webp']) {
     expect((await request.get(p)).status(), p).toBe(404);
   }
+  await revealAll(page);
+  await expectNoTodo(page);
 });
 
-test('Students: a muted, inline, looping board; its clock drives captions, step and chip', async ({ page }) => {
+// The live board's own behaviour is gated in tests/gate-live-embed.spec.ts: it needs the real route
+// AND a parent on https://karkalabs.ai, because the route's framing check refuses a localhost parent
+// unless the embed page is local too. Everything here runs offline, against this build alone.
+test('Students: a frame that never reports ready hands the panel to the loop, not a bare poster', async ({ page }) => {
+  // A frame that loads and says nothing: the 4s deadline, not a load error.
+  await page.route(FRAME_URL, (route) =>
+    route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>silent frame</title>' }),
+  );
   await page.goto('/');
   await lenisTo(page, await pinStart(page, 'students'));
   const section = page.locator('#students');
-  await expect(section.locator('[data-embed-status="live"]')).toBeVisible({ timeout: 15_000 });
+  await expect(section.locator('[data-panel="video"]')).toBeVisible({ timeout: 15_000 });
+  await expect(section.locator('iframe')).toHaveCount(0);
+
   const video = section.locator('video');
   for (const attr of ['autoplay', 'muted', 'loop', 'playsinline']) await expect(video).toHaveAttribute(attr, '');
   await expect(video).toHaveAttribute('poster', loop.poster.src);
+  await expect(section.locator('[data-embed-status="live"]')).toBeVisible({ timeout: 15_000 });
   expect(await video.evaluate((v: HTMLVideoElement) => v.muted && !v.paused)).toBe(true);
 
+  // The loop's own clock drives its own lines, step pills and chip — exactly as path C2 does.
   const track = section.locator('[data-caption-track]');
   await expect(track).toContainText(loop.captionLabel);
   for (const [i, c] of loop.captions.entries()) {
@@ -146,7 +179,10 @@ test('Students: a muted, inline, looping board; its clock drives captions, step 
   }
 });
 
-test('Students: the loop pauses on the visitor’s Pause and off-screen', async ({ page }) => {
+test('Students: the fallback loop pauses on the visitor’s Pause and off-screen', async ({ page }) => {
+  await page.route(FRAME_URL, (route) =>
+    route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>silent frame</title>' }),
+  );
   await page.goto('/');
   await lenisTo(page, await pinStart(page, 'students'));
   const section = page.locator('#students');
@@ -158,7 +194,10 @@ test('Students: the loop pauses on the visitor’s Pause and off-screen', async 
   await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.paused)).toBe(false);
   await lenisTo(page, 'bottom');
   // Generous, and tolerant of the element unmounting mid-check: the observers that pause and unmount
-  // the loop can take their time when the whole suite is competing for the CPU (it flaked at 5s).
+  // the loop can take their time when the whole suite is competing for the CPU (it flaked at 5s, then
+  // at 15s once this became the FALLBACK path — which spends the 4s ready deadline before the loop
+  // exists at all. The 15s failure's own state dump showed videos: 0, i.e. it had unmounted, just
+  // after the poll gave up).
   const settled = async () => {
     if ((await video.count()) === 0) return true;
     // Awaited, not returned: an unawaited promise here made the poll compare a Promise to `true`,
@@ -166,7 +205,7 @@ test('Students: the loop pauses on the visitor’s Pause and off-screen', async 
     return await video.evaluate((v: HTMLVideoElement) => v.paused).catch(() => true);
   };
   try {
-    await expect.poll(settled, { timeout: 15_000 }).toBe(true);
+    await expect.poll(settled, { timeout: 30_000 }).toBe(true);
   } catch (failure) {
     // This has only ever failed inside the full suite, never alone or under CPU throttling. Record
     // where the page actually was, so the next occurrence names its cause instead of being guessed at.
@@ -191,14 +230,15 @@ test('Students: the loop pauses on the visitor’s Pause and off-screen', async 
 test.describe('reduced motion', () => {
   test.use({ reducedMotion: 'reduce' });
 
-  test('Students: no pin, no video — the loop’s first frame and its full transcript', async ({ page }) => {
+  test('Students: no pin, no frame — the board’s own still and its full transcript', async ({ page }) => {
     await page.goto('/');
     const section = page.locator('#students');
     await expect(section.locator('[data-embed-status="poster"]')).toBeVisible();
     await expect(section.locator('video')).toHaveCount(0);
+    await expect(section.locator('iframe')).toHaveCount(0);
     await expect(page.locator('.pin-spacer')).toHaveCount(0);
-    await expect(section.locator('ol li')).toHaveCount(loop.captions.length);
-    await expect(section.locator('img[src*="/posters/"]')).toHaveAttribute('src', loop.poster.src);
+    await expect(section.locator('ol li')).toHaveCount(embed.captions.length);
+    await expect(section.locator('img[src*="/posters/"]')).toHaveAttribute('src', embed.poster.src);
     await expect(section.locator('[data-concept-state="summary"]')).toHaveText('Concept stateNot started → Shaky');
     await revealAll(page);
     await expectNoTodo(page);
@@ -215,7 +255,7 @@ test.describe('reduced motion', () => {
 });
 
 test('stills: WebP ≤ 200 KB with alt text, loop ≤ 2 MB, OG image 1200×630', async ({ page, request }) => {
-  for (const s of [loop.poster, parents.poster, schools.poster, tuition.poster]) {
+  for (const s of [embed.poster, loop.poster, parents.poster, schools.poster, tuition.poster]) {
     expect(s.src).toMatch(/\.webp$/);
     expect(statSync(`public${s.src}`).size, s.src).toBeLessThanOrEqual(200 * 1024);
     expect((await request.get(s.src)).status(), s.src).toBe(200);

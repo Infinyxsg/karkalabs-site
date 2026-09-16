@@ -17,10 +17,16 @@ export type EmbedCommand =
   | { cmd: 'unmute' }
   | { cmd: 'mute' };
 
-/** One scene step as the frame describes it in `ready` (contract v2): its number and what the tutor says. */
+/**
+ * One scene step as the frame describes it in `ready`: its number, what the tutor says, and (v3)
+ * where that line starts in the narration. `t` is `null` until a recording of the scene exists
+ * (TODO:VB-audio), and the site ignores it either way — caption timings live in copy.ts, beside the
+ * audio file they belong to.
+ */
 export interface ReadyStep {
   n: number;
   say: string;
+  t?: number | null;
 }
 
 /**

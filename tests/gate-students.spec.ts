@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { progressToStep } from '../src/sections/studentsLogic';
 import { tileStateForStep } from '../src/product/mastery';
-import { schools } from '../src/content/copy';
+import { schools, students } from '../src/content/copy';
 
 // The pinned sections on the live-embed path (fixture build, :4174): lockstep at 390 and 1440.
 // Not launch evidence since 040 (v1 ships the loop — see gate-launch.spec.ts), so the captures go
@@ -102,7 +102,9 @@ test.describe('reduced motion @ 390×844', () => {
     await expect(section.locator('[data-embed-status="poster"]')).toBeVisible();
     await expect(section.locator('iframe')).toHaveCount(0);
     await expect(page.locator('.pin-spacer')).toHaveCount(0);
-    await expect(section.locator('ol li')).toHaveCount(TOTAL);
+    // No frame mounts under reduced motion, so the transcript is copy.ts's lines, not the
+    // stand-in's step count (TOTAL): the two differ since the real scene's five steps landed.
+    await expect(section.locator('ol li')).toHaveCount(students.embed.captions.length);
     await expect(section.locator('[data-concept-state="summary"]')).toHaveText('Concept stateNot started → Shaky');
     await section.locator('img[src*="/posters/"]').evaluate((img: HTMLImageElement) => img.decode());
     await section.screenshot({ path: `${OUT}/students-390x844-reduced-motion.png` });

@@ -9,8 +9,9 @@ export const scroll = {
   lerp: 0.12,
   /**
    * Scroll length of a pinned sequence, as % of viewport height, shared evenly by the scene's steps
-   * (360 = the 6-step placeholder at 60 each; the contract's 8-step maximum still gets 45 each).
-   * Constant on purpose: a frame reporting a different step count must never rebuild a live pin.
+   * (360 = two-clocks' 5 steps at 72 each; the contract's 8-step maximum still gets 45 each).
+   * Constant on purpose: a frame reporting a different step count must never rebuild a live pin —
+   * and neither must the embed handing the panel to the loop, so a fallback keeps this length too.
    */
   pinLengthVh: 360,
   /**
@@ -25,7 +26,11 @@ export const scroll = {
 } as const;
 
 export const embed = {
-  /** Poster fallback if the frame hasn't posted {evt:'ready'} by then. */
+  /**
+   * How long a mounted frame has to post {evt:'ready'}. Miss it and the panel hands over to the
+   * muted loop (040 §C.2) — real footage of the real board, not a bare poster. The live route
+   * reports in ~300 ms cold (038b gate), so this only fires when something is actually wrong.
+   */
   readyTimeoutMs: 4000,
   /** Mount the iframe when within this much of the viewport (% of viewport height). */
   mountMarginPct: 100,

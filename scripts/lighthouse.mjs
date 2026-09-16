@@ -7,8 +7,9 @@ import { mkdir, writeFile } from 'node:fs/promises';
 
 const url = process.argv[2] ?? 'http://localhost:4173/';
 const RUNS = Number(process.env.LH_RUNS ?? 3);
-// Each word writes its own folder; earlier gate evidence stays untouched.
-const OUT = process.env.GATE_DIR ?? 'docs/gate/040';
+// Each word writes its own folder; earlier gate evidence stays untouched. Bumped to 043
+// in 040 §C.1 after a run clobbered 040's and 042's screenshots.
+const OUT = process.env.GATE_DIR ?? 'docs/gate/043-live-embed';
 // 'simulate' (Lighthouse default, the gate) or 'devtools' (applied throttling: the network and CPU
 // are really slowed, so paint times are measured, not estimated). Separate files per mode.
 const THROTTLING = process.env.LH_THROTTLING === 'devtools' ? 'devtools' : 'simulate';

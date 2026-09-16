@@ -3,7 +3,7 @@ import { mkdirSync } from 'node:fs';
 
 // 042 gate evidence: the intro at its three beats — the clip's first frame, the moment the wordmark
 // lifts off the lid, and the resting state it dissolves into — at both design widths.
-const OUT = process.env.GATE_DIR ?? 'docs/gate/042';
+const OUT = process.env.GATE_DIR ?? 'docs/gate/043-live-embed';
 mkdirSync(OUT, { recursive: true });
 
 const VIEWPORTS = [

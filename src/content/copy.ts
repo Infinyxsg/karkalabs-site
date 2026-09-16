@@ -110,25 +110,38 @@ const boardLoopCaptions: readonly Caption[] = [
   { t: 12.5, text: 'He guides them to it.' },
 ];
 
-// TODO:VB — DRAFT lines written only to exercise the stand-in frame's 6 steps (embed path, C1). A frame
-// that sends `ready.steps` (contract v2) replaces them line by line. Never rendered by the v1 build.
-const twoClocksDraftCaptions: readonly Caption[] = [
-  { t: 0, text: 'A ball is launched at an angle. Let’s follow its path, and its velocity, the whole way.' },
-  { t: 5, text: 'Its velocity has two parts: one across, one up. Keep an eye on both.' },
-  { t: 10, text: 'Gravity only pulls down. So only the upward part shrinks as the ball rises.' },
-  { t: 15, text: 'You said the ball stops at the top. Let’s check that on the board.' },
-  { t: 20, text: 'At the top, only the upward part is zero. The across part never changed, so it keeps moving.' },
-  { t: 26, text: 'That’s why the path is a curve, not straight up and down. Now you’ve got it.' },
+/** The Students poster: the live board's own first picture. Provenance: public/posters/README.md. */
+const twoClocksPoster: Poster = {
+  src: '/posters/students-two-clocks.webp',
+  alt: 'The Karka board mid-lesson on a thrown ball: strobe dots along the arc, evenly spaced marks on the ground rail and crowded ones up the side rail, with a readout giving the unchanged horizontal velocity and the constant downward acceleration.',
+  width: 800,
+  height: 576,
+};
+
+// The five lines the live frame sends in `ready.steps`, mirrored here as the pre-ready fallback so
+// the section reads the same before the board answers (and if it never does). Not draft copy: each
+// is the scene's or the manifest's own text, cited in the 038b gate report
+// (Karka/GATE_REPORTS/2026-09-15_1727_cbse11-embed_gate.md) — steps 1–5 at
+// scenes/p11-scenes-ch3.js:370, physics-cbse11-manifest.js:739/739/741 and p11-scenes-ch3.js:353-354.
+// `t` is Infinity, not a second count: the steps carry `t: null` until Aarya's recording exists
+// (TODO:VB-audio), so no narration clock ever reaches them — scroll drives the board, not audio.
+const twoClocksCaptions: readonly Caption[] = [
+  { t: Infinity, text: 'The horizontal ticks stay even. The vertical ones do not.' },
+  { t: Infinity, text: 'The gaps along the ground stay exactly equal for the whole flight; the gaps up the side stretch and then compress.' },
+  { t: Infinity, text: 'Same ball, same clock — only the vertical component is being acted on.' },
+  { t: Infinity, text: "At the very top of the flight, what is the ball's acceleration?" },
+  { t: Infinity, text: 'This is the top. v_y is passing through zero — and the acceleration arrow has not flickered. Zero velocity is not zero acceleration.' },
 ];
 
 export const students = {
   glyph: glyph('graph'),
   eyebrow: 'For students',
   headline: 'You say it. Aarya catches it. The board redraws it.',
-  // Vinodh's ruling after 040 (session chat): rewritten to match the loop, which shows a graph, not a throw.
-  body: 'Say what you think the graph is telling you. Aarya hears the mistake before you finish the sentence, and the board shows you why. No marking scheme, no waiting a week.',
+  // 040 §A's line, restored with path C1 (session chat): the board is the live two-clocks scene now,
+  // so it shows a throw again. The graph wording belonged to the C2 loop.
+  body: 'Say what you think happens at the top of a throw. Aarya hears the mistake before you finish the sentence, and the board shows you why. No marking scheme, no waiting a week.',
   tutor: 'Aarya',
-  /** 040 C2 — the muted loop of the real board (v1). */
+  /** 040 C2 — the muted loop of the real board: path C2's panel, and C1's fallback if `ready` misses its deadline. */
   loop: {
     title: 'The Karka board, muted: a velocity–time graph drawn live, then a worked explanation step by step',
     // The lines are the demo's narrator describing the board, not Aarya speaking — so not labelled "Aarya".
@@ -136,12 +149,11 @@ export const students = {
     poster: boardLoopPoster,
     captions: boardLoopCaptions,
   },
-  /** 040 C1 — the live embed, built when VITE_KARKA_EMBED_ORIGIN is set. */
+  /** 040 C1 — the live embed. Shipping: VITE_KARKA_EMBED_ORIGIN is set in .env. */
   embed: {
     frameTitle: 'Karka board: Aarya explains a projectile’s path, step by step',
-    // TODO:VB — a still of p11-proj-two-clocks-one-time once the live route ships; the loop's first frame until then.
-    poster: boardLoopPoster,
-    captions: twoClocksDraftCaptions,
+    poster: twoClocksPoster,
+    captions: twoClocksCaptions,
   },
 };
 

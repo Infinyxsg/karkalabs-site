@@ -1,6 +1,12 @@
 # karkalabs.ai → GitHub Pages (Settings → Pages → Source: GitHub Actions).
-# Nothing deploys unless the gate job passes: typecheck + build, the Playwright suite (the build
-# that ships, plus the live-embed code path), and Lighthouse mobile (simulated, 3 runs).
+# Nothing deploys unless the gate job passes: typecheck + build, the Playwright suite (the build that
+# ships, the stand-in frame, and the LIVE /embed/ route on cbsephysics11.karkalabs.ai), and Lighthouse
+# mobile (simulated, 3 runs, on the intro and no-intro paths).
+#
+# The suite reaches the network: the `live-embed` project frames the real route. That is deliberate —
+# the Students board IS that route since 040 §C.1, so a deploy claiming it works should not pass while
+# it is down. If that coupling ever needs breaking, drop the project with
+# `npx playwright test --project=site --project=iphone-safari --project=embed-path`.
 name: Pages
 
 on:
@@ -41,11 +47,15 @@ jobs:
         run: npm test
 
       # Quoted: an unquoted ": " inside a plain scalar starts a nested mapping (invalid YAML).
-      - name: "Lighthouse mobile, simulated. Gate: performance ≥ 90, accessibility 100, CLS < 0.1"
+      # Both paths: a first visit (the intro plays) and a return visit (?no-intro strips the flag
+      # script, which is what sessionStorage does on a second load — Lighthouse always opens a fresh
+      # tab, so it would otherwise only ever measure the first visit).
+      - name: "Lighthouse mobile, simulated, intro + no-intro. Gate: performance ≥ 90, accessibility 100, CLS < 0.1"
         run: |
           node scripts/serve-dist.mjs &
           for i in $(seq 1 30); do curl -sf http://localhost:4173/ > /dev/null && break; sleep 1; done
           GATE_DIR=lighthouse-ci npm run gate:lighthouse
+          GATE_DIR=lighthouse-ci-no-intro npm run gate:lighthouse "http://localhost:4173/?no-intro"
 
       - name: Keep the gate evidence
         if: always()
@@ -54,7 +64,8 @@ jobs:
           name: gate-evidence
           path: |
             lighthouse-ci/
-            docs/gate/040/
+            lighthouse-ci-no-intro/
+            docs/gate/
             test-results/
           if-no-files-found: ignore
 

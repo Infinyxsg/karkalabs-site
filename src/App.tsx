@@ -32,7 +32,9 @@ export function App() {
     void import('./lib/intro').then(({ runIntro }) => runIntro());
   }, []);
 
-  // 040 §C: v1 shows the muted loop (C2); the live embed (C1) is the same section, switched by config.
+  // 040 §C: the Students board is the live embed (C1), switched on by VITE_KARKA_EMBED_ORIGIN in
+  // .env. Unset it and the same section builds the muted loop (C2) instead — which is also what a
+  // built embed falls back to at runtime if the frame never reports ready.
   const loop = STUDENTS_PANEL === 'video';
 
   return (
@@ -62,6 +64,17 @@ export function App() {
             captionLabel={loop ? students.loop.captionLabel : undefined}
             poster={loop ? students.loop.poster : students.embed.poster}
             captions={loop ? students.loop.captions : students.embed.captions}
+            loopFallback={
+              loop || !LOOPS.students
+                ? undefined
+                : {
+                    loop: LOOPS.students,
+                    poster: students.loop.poster,
+                    captions: students.loop.captions,
+                    title: students.loop.title,
+                    captionLabel: students.loop.captionLabel,
+                  }
+            }
             narration={NARRATION.students}
             ground="paper"
             glyph={students.glyph}

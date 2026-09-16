@@ -1,4 +1,34 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, request as playwrightRequest, type Page } from '@playwright/test';
+
+/** The origin the live embed's framing check actually trusts (its PROD allowlist). */
+export const SITE_ORIGIN = 'https://karkalabs.ai';
+
+/**
+ * Serve the candidate build AS https://karkalabs.ai, so the page framing the live embed has the
+ * origin the route's framing check requires.
+ *
+ * The route's dev allowance (`http://localhost:*`) applies only while the EMBED page is itself
+ * served from localhost — a deliberate 038b decision so the allowance can never reach production.
+ * The embed we gate against is the production one, so a parent on :4173 is refused, the frame blanks
+ * and `ready` never arrives. Intercepting our own origin is therefore not a convenience: it is the
+ * only way to exercise the real route with the real parent origin before the site is deployed.
+ *
+ * Every karkalabs.ai request is fulfilled from the local server, so the live site is never touched;
+ * requests to the embed's origin are left alone and go to the network for real.
+ */
+export async function serveLocalAsProduction(page: Page, local = 'http://localhost:4173') {
+  const api = await playwrightRequest.newContext({ baseURL: local });
+  await page.route(`${SITE_ORIGIN}/**`, async (route) => {
+    const url = new URL(route.request().url());
+    const res = await api.get(`${url.pathname}${url.search}`, { failOnStatusCode: false });
+    await route.fulfill({
+      status: res.status(),
+      headers: { ...res.headers(), 'content-encoding': '' },
+      body: await res.body(),
+    });
+  });
+  return () => api.dispose();
+}
 
 /**
  * Jump to an exact scroll position (through Lenis when it runs, so ScrollTrigger follows), and make

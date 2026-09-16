@@ -1,8 +1,37 @@
 # Karka board embed contract
 
-**Contract version: 2.** Changed by the site lane in word 039 (2026-09-15). Version 1 is the 036/037 contract at `ca2a377`.
+**Contract version: 3.** Changed by the site lane in word 040 §D (2026-09-16), recording the
+cbse11-embed lane's three changes from its own gate report. Version 2 is the 039 contract; version 1
+is the 036/037 contract at `ca2a377`.
 
 ## Changelog
+
+### v3: site lane, word 040 §D — the route is real, and these are its terms
+Source: `Karka/GATE_REPORTS/2026-09-15_1727_cbse11-embed_gate.md` (038b), whose "For the site lane"
+section asked for these to be recorded in the report's own words. The route shipped on CBSEPhysics11
+`main` at `486141c` (2026-09-16) and serves from `https://cbsephysics11.karkalabs.ai`. Until now these
+three sat below as *pending and unconfirmed*; they are what the built frame does.
+
+1. **Framing-check limits, as built in `embed/karka-embed-bridge.js`.** Recorded in full in §3 below,
+   replacing the placeholder-derived description. In short: the allowlist is
+   `https://karkalabs.ai`, `https://www.karkalabs.ai` and the page's own origin, plus any
+   `http://localhost:*` / `http://127.0.0.1:*` parent **but only while the embed page is itself served
+   from `localhost` or `127.0.0.1`** — a runtime host check, so a copy served from a real host never
+   matches and the allowance cannot reach production.
+   - **Consequence for this repo's gates:** a page on `http://localhost:4173` cannot frame the
+     *production* route. The live gate therefore serves this build as `https://karkalabs.ai`, to get
+     the origin the route trusts (`serveLocalAsProduction` in `tests/helpers.ts`).
+2. **Step 0 is the freshly mounted scene, frozen, with the ball at launch** — not an empty board.
+   This replaces v1 §1.1's wording, and `reset` goes there too. Every step ends paused: the scene does
+   not run between scroll steps, in place of v1's "the last step's drawing animates".
+3. **`ready` carries the steps and their timings:**
+   `{evt:'ready', n, scene, steps:[{n, say, t}]}`. `n` is kept (it did not become optional in
+   practice), and `t` is `null` until Aarya's recording exists (`TODO:VB-audio`). It is compatible
+   with the v2 checks, which ignore `t`.
+
+**Also recorded from the same report** (behaviour, not contract changes): `play` autoplays one step
+every 2.6 s and stops on the last; `unmute`/`mute` are ignored; the frame's readout is an overlay
+placed once at load and not re-scored on resize.
 
 ### v2: site lane, word 039
 
@@ -18,15 +47,9 @@
    - the board never plays audio (`unmute`/`mute` stay reserved);
    - the framing check is required.
 
-### Pending: the cbse11-embed lane's (038b) three changes, not yet recorded
-**Rechecked in word 040 (2026-09-15, about 17:30).** 038b's report is still not in Drive `Karka/GATE_REPORTS`, so the contract stays at **v2**, as 040 §D requires.
-- The local `Demo videos\Karka Website\GATE_REPORTS\038b_cbse11-embed\` holds screenshots and a `network-log.json` from 17:17.
-- It has no report.
-
-039 asks for these to be recorded **exactly as reported**. 038b's gate report was not in either `GATE_REPORTS` folder when this version was written (local `Demo videos\Karka Website\GATE_REPORTS\` and Drive `Karka/GATE_REPORTS`). The lines below describe what 038b's prompt says it will report. They are **unconfirmed**, and the report's own wording will replace them.
-- (a) **Framing-check limits.** The frame's allowlist adds `http://localhost:*` and `http://127.0.0.1:*`, but only when the embed page itself is served from localhost.
-- (b) **Step 0.** Step 0 becomes the re-mounted scene, paused, with the ball at launch. This replaces §1.1's "empty board". The placeholder already draws step 0 this way.
-- (c) **`ready` payload.** `ready` carries `{scene, steps:[{n, say}]}`. The site side is built (v2, item 1).
+### Recorded in v3 (this block was "pending" through 039 and 040's first pass)
+038b's gate report reached Drive `Karka/GATE_REPORTS` on 2026-09-15 at 17:27, and its three changes
+are in the v3 entry above, in the report's own words. Nothing here is unconfirmed any more.
 
 **Status:** spec. First written in word 036 (2026-09-15) and updated for the **037 rulings** the same day. The Karka frontend repos were **read, not modified**. Line numbers are as read on 2026-09-15.
 **Owner of the real route:** the cbse11-embed lane (word 038-cbse11). **Consumer:** this site (`src/embed/KarkaEmbed.tsx`).
@@ -71,16 +94,17 @@ Pages can't rewrite `/embed`, so the route is `embed/index.html`. The site reque
 - **The framing stopgap (§3) must be included.**
 
 ### 1.1 Messages
-The shapes are identical to `src/embed/protocol.ts`. Steps are **1-based**, and `n = 0` means an empty board.
+The shapes are identical to `src/embed/protocol.ts`. Steps are **1-based**. `n = 0` is the mounted
+scene frozen with the ball at launch (v3), not an empty board.
 
 | Direction | Message | Meaning |
 |---|---|---|
 | parent → frame | `{cmd:'play'}` | Autoplay the steps from the current one. Stop at the last step; don't loop. |
 | parent → frame | `{cmd:'pause'}` | Freeze the board, including the 2D RAF loop through `window.KARKA_PAUSED` (`vendor/science-scenes-2d.js:161`). |
-| parent → frame | `{cmd:'reset'}` | Pause, then go to step 0. |
-| parent → frame | `{cmd:'step', n}` | Pause autoplay and go to step `n` (clamped 0…N). The last step's drawing animates; earlier steps render complete. Idempotent. The parent sends it from scroll, **or from the narration clock while narration plays**. |
+| parent → frame | `{cmd:'reset'}` | Pause, then go to step 0 — the mounted scene with the ball at launch (v3). |
+| parent → frame | `{cmd:'step', n}` | Pause autoplay and go to step `n` (clamped 0…N). Every step ends frozen (v3): the frame re-mounts, replays acts 1..n on the scene's own clock, pauses, and only then echoes `{evt:'step', n}`. Idempotent. The parent sends it from scroll, **or from the narration clock while narration plays**. |
 | parent → frame | `{cmd:'unmute'}`, `{cmd:'mute'}` | **Reserved; never sent (037 ruling 2).** A frame must ignore them. |
-| frame → parent | `{evt:'ready', n?, scene?, steps?:[{n, say}]}` (v2) | Sent after the scene has mounted. `n` = the total step count, which must be ≤ 8. In v2, `n` may be omitted when `steps` is sent, and the total is then `steps.length`. The site uses each `say` line as that step's caption, and falls back to copy.ts for any line that is missing or `TODO:VB`. **It can arrive more than once:** a reloaded frame sends it again as a fresh board at step 0. The parent must treat every `ready` as a re-initialisation and re-send `pause`, or the current `step`/`play`. |
+| frame → parent | `{evt:'ready', n, scene, steps:[{n, say, t}]}` (v3) | Sent after the scene has mounted. `n` = the total step count, which must be ≤ 8; since v2 it may be omitted when `steps` is sent, and the real route sends both. `t` (v3) is where that line starts in the narration, and is `null` until a recording exists. The site uses each `say` line as that step's caption, and falls back to copy.ts for any line that is missing or `TODO:VB`. **It can arrive more than once:** a reloaded frame sends it again as a fresh board at step 0. The parent must treat every `ready` as a re-initialisation and re-send `pause`, or the current `step`/`play`. |
 | frame → parent | `{evt:'step', n}` | Sent every time the board shows step `n`, including as an echo of `cmd:'step'`. |
 
 **Origin rules (both sides):**
@@ -166,7 +190,19 @@ The embed therefore needs a **per-scene step script**: ≤ 8 entries `{act, say,
 
 **Ruling (037): ship the in-page check as the stopgap.** The Cloudflare header (a Pages `_headers` rule, or a Worker on `/embed/*`) is its own future word, with Vinodh deciding the timing. The nameservers are not moving yet.
 
-### The stopgap, as implemented in the placeholder (the real route must copy it)
+### The stopgap, as built in the real route (v3)
+`embed/karka-embed-bridge.js` in CBSEPhysics11, at `486141c`:
+- **Allowlist:** `https://karkalabs.ai`, `https://www.karkalabs.ai`, and the page's own origin.
+- **Dev allowance:** any `http://localhost:*` or `http://127.0.0.1:*` origin as well, **but only while
+  the embed page itself is served from `localhost` or `127.0.0.1`** (a runtime host check). A copy
+  served from a real host never matches, so the allowance can't reach production.
+- **Which ancestors are checked:** every one listed in `location.ancestorOrigins` (Chromium and
+  Safari). Where that doesn't exist (Firefox), the `document.referrer` origin. No ancestor at all
+  fails closed: the page blanks itself, posts nothing and accepts nothing.
+- **The meta CSP** (`connect-src 'none'`) is not framing protection. It's the second proof that the
+  frame can't call out.
+
+### The same stopgap in the placeholder (test-only)
 ```js
 if (window.parent !== window) {
   const ancestors = location.ancestorOrigins ? Array.from(location.ancestorOrigins) : [parentOriginFromReferrer];
@@ -188,7 +224,9 @@ if (window.parent !== window) {
 3. **It can't stop the page being fetched, cached or scraped.** It only stops it running inside a foreign frame.
 4. **There is no violation reporting.** A header CSP can report to an endpoint; this can't.
 5. **Nested frames:** in Chromium and Safari every ancestor must be allowlisted. In Firefox only the direct parent is seen.
-6. **Residual risk stays small only while the frame has no side effects.** That means no audio, no voice, no writes, and no controls that do anything outside the board. Any future interactive or side-effecting feature makes the header (option B) a **precondition**.
+6. **It is acceptable only while the frame has no side effects.** 038b's wording: no audio, no voice,
+   no writes. The real control is a `frame-ancestors` header, which needs Cloudflare — a future word.
+7. **Residual risk stays small only while the frame has no side effects.** That means no audio, no voice, no writes, and no controls that do anything outside the board. Any future interactive or side-effecting feature makes the header (option B) a **precondition**.
 
 ## 4. Scenes
 

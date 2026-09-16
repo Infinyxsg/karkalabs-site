@@ -5,7 +5,7 @@ import { licensingHref, schoolDemoHref, whatsappHref } from '../src/content/cont
 import { expectNoTodo, lenisTo, pinStart, revealAll } from './helpers';
 
 // 040 gate evidence: every section at 390 and 1440, and the full page. Each word writes its own folder.
-const OUT = process.env.GATE_DIR ?? 'docs/gate/040';
+const OUT = process.env.GATE_DIR ?? 'docs/gate/043-live-embed';
 mkdirSync(OUT, { recursive: true });
 
 const VIEWPORTS = [

@@ -36,6 +36,18 @@ export interface PinnedSceneProps {
   loop?: BoardLoop;
   /** Caption eyebrow for the loop: its lines are the demo's narration, not the tutor's words. */
   captionLabel?: string;
+  /**
+   * What panel = 'embed' falls back to when the frame misses its `ready` deadline: the same muted
+   * loop path C2 ships, with its own footage, poster and lines (they are timed to the video, and
+   * are not the frame's). Without it the embed keeps its poster + transcript.
+   */
+  loopFallback?: {
+    loop: BoardLoop;
+    poster: Poster;
+    captions: readonly Caption[];
+    title: string;
+    captionLabel: string;
+  };
   /** Section ground. The four audience sections alternate, so the page isn't one flat tone. */
   ground?: 'ink' | 'paper';
   /** Decorative subject mark (src from `glyph()` in copy.ts). */
@@ -58,6 +70,8 @@ export interface PinnedSceneProps {
  *   {evt:'step', n} advances the captions (and, for students, the concept's tile state);
  * - video (C2): the pin holds the board on screen while the loop's own clock (`timeupdate`)
  *   advances the same captions, step pills and chip.
+ * An embed that misses its `ready` deadline hands the panel to that same loop (`loopFallback`) —
+ * real footage of the real board, which beats a still. The pin keeps the length it was built with.
  * Reduced motion: no pin, no frame, no video — poster plus the full transcript.
  * On a paper ground the concept chip keeps the board's own state colours by sitting in an ink strip:
  * those colours are the product's and are built for the dark board.
@@ -77,6 +91,7 @@ export function PinnedScene({
   panel = 'embed',
   loop,
   captionLabel,
+  loopFallback,
   ground = 'ink',
   glyph,
   variant,
@@ -91,7 +106,15 @@ export function PinnedScene({
   const [framed, setFramed] = useState(false);
   const [driveStep, setDriveStep] = useState(1);
   const [shownStep, setShownStep] = useState(0);
+  const [embedGaveUp, setEmbedGaveUp] = useState(false);
+  /**
+   * The build-time choice. The pin is sized from THIS and never from the runtime one: a fallback
+   * mid-visit must not re-register a built pin (see pinRegistry), so a fallen-back embed keeps the
+   * embed's longer pin and the loop simply runs under it.
+   */
   const video = panel === 'video' && loop !== undefined;
+  /** What is on screen now: the loop also takes over when a live embed gives up. */
+  const fellBackToLoop = !video && embedGaveUp && loopFallback !== undefined;
   const light = ground === 'paper';
   const tone = light ? 'paper' : 'ink';
 
@@ -180,14 +203,14 @@ export function PinnedScene({
               </div>
               {classroom && <TeacherViewCard view={classroom.teacherView} />}
             </header>
-            {video ? (
+            {video || fellBackToLoop ? (
               <LoopPanel
-                loop={loop}
+                loop={fellBackToLoop ? loopFallback!.loop : loop!}
                 audience={audience}
-                poster={poster}
-                captions={captions}
-                title={frameTitle}
-                captionLabel={captionLabel ?? tutor}
+                poster={fellBackToLoop ? loopFallback!.poster : poster}
+                captions={fellBackToLoop ? loopFallback!.captions : captions}
+                title={fellBackToLoop ? loopFallback!.title : frameTitle}
+                captionLabel={fellBackToLoop ? loopFallback!.captionLabel : (captionLabel ?? tutor)}
                 onReady={setTotal}
                 onStepShown={setShownStep}
                 tone={tone}
@@ -207,6 +230,7 @@ export function PinnedScene({
                   setTotal(n);
                   setFramed(fromFrame);
                 }}
+                onFallback={() => setEmbedGaveUp(true)}
                 onStepShown={setShownStep}
                 tone={tone}
               />

@@ -78,54 +78,6 @@ test('contract v2: captions come from the frame’s ready.steps, TODO:VB lines f
   await expect(section.locator('[data-caption-track]')).toContainText(captions[1]!.text);
 });
 
-test('"Hear Aarya" plays narration in the parent page; the audio clock drives captions and board', async ({ page }) => {
-  await live(page);
-  const section = page.locator('#students');
-  await expect(frame(page).locator('audio')).toHaveCount(0);
-
-  await section.getByRole('button', { name: 'Hear Aarya' }).click();
-  await expect(section.locator('[data-narration="playing"]')).toBeVisible();
-  await expect(section.getByText('Placeholder audio · TODO:VB-audio')).toBeVisible();
-
-  // Jump the narration clock into caption 4 (t = 15 s).
-  await section.locator('audio').evaluate((a: HTMLAudioElement) => {
-    a.currentTime = 16;
-  });
-  await expect(section.locator('[data-caption-track]')).toContainText(captions[3]!.text);
-  await expect(frame(page).locator('body')).toHaveAttribute('data-step', '4');
-
-  await section.getByRole('button', { name: 'Mute Aarya' }).click();
-  await expect(section.locator('[data-narration="idle"]')).toBeVisible();
-  // The frame never hears about voice: no unmute/mute is ever sent.
-  await expect(frame(page).locator('body')).not.toHaveAttribute('data-voice', /.*/);
-});
-
-test('narration pauses when the embed leaves view', async ({ page }) => {
-  await live(page);
-  const section = page.locator('#students');
-  await section.getByRole('button', { name: 'Hear Aarya' }).click();
-  await expect(section.locator('[data-narration="playing"]')).toBeVisible();
-  await lenisTo(page, 'bottom');
-  await expect(section.locator('[data-narration="idle"]')).toHaveCount(1);
-  expect(await section.locator('audio').evaluate((a: HTMLAudioElement) => a.paused)).toBe(true);
-});
-
-test.describe('reduced motion + narration', () => {
-  test.use({ reducedMotion: 'reduce' });
-
-  test('captions advance with the audio; the board stays on the poster', async ({ page }) => {
-    await page.goto('/');
-    const section = page.locator('#students');
-    await section.getByRole('button', { name: 'Hear Aarya' }).click();
-    await section.locator('audio').evaluate((a: HTMLAudioElement) => {
-      a.currentTime = 21;
-    });
-    await expect(section.locator('li[aria-current="true"]')).toContainText(captions[4]!.text);
-    await expect(section.locator('iframe')).toHaveCount(0);
-    await expect(section.locator('[data-embed-status="poster"]')).toBeVisible();
-  });
-});
-
 test('sends pause on leaving view, unmounts 2 viewports away', async ({ page }) => {
   await live(page);
   await page.waitForFunction(() => document.getElementById('students')?.dataset.pinEnd);
@@ -140,15 +92,17 @@ test('sends pause on leaving view, unmounts 2 viewports away', async ({ page }) 
   await expect(page.locator('#students [data-embed-status="idle"]')).toHaveCount(1);
 });
 
-test('poster fallback when the frame never reports ready within 4s', async ({ page }) => {
+test('loop fallback when the frame never reports ready within 4s', async ({ page }) => {
   await page.route(FRAME_URL, (route) =>
     route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>silent frame</title>' }),
   );
   await page.goto('/');
   await expect(page.locator('#students [data-embed-status="loading"]')).toBeVisible();
-  await expect(page.locator('#students [data-embed-status="fallback"]')).toBeVisible({ timeout: 6_000 });
+  // The panel hands over to the muted loop — real footage of the real board, not a bare poster.
+  await expect(page.locator('#students [data-panel="video"]')).toBeVisible({ timeout: 6_000 });
   await expect(page.locator('#students iframe')).toHaveCount(0);
-  await expect(page.locator('#students ol li')).toHaveCount(captions.length);
+  await expect(page.locator('#students video')).toHaveCount(1);
+  await expect(page.locator('#students video')).toHaveAttribute('poster', students.loop.poster.src);
 });
 
 test('iframe ignores pointer events while Lenis is scrolling', async ({ page }) => {
