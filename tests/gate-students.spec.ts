@@ -104,7 +104,7 @@ test.describe('reduced motion @ 390×844', () => {
     await expect(page.locator('.pin-spacer')).toHaveCount(0);
     await expect(section.locator('ol li')).toHaveCount(TOTAL);
     await expect(section.locator('[data-concept-state="summary"]')).toHaveText('Concept stateNot started → Shaky');
-    await section.locator('img').evaluate((img: HTMLImageElement) => img.decode());
+    await section.locator('img[src*="/posters/"]').evaluate((img: HTMLImageElement) => img.decode());
     await section.screenshot({ path: `${OUT}/students-390x844-reduced-motion.png` });
   });
 

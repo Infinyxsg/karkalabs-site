@@ -13,11 +13,14 @@ export function ConceptChip({
   states = CONCEPT_STATES,
   title = 'Concept state',
   summary = false,
+  tone = 'ink',
 }: {
   state?: string;
   states?: Record<string, ConceptState>;
   title?: string;
   summary?: boolean;
+  /** Ground the chip sits on — picks the teal for its title. Site addition. */
+  tone?: 'ink' | 'paper';
 }) {
   const keys = Object.keys(states);
   const key = state && states[state] ? state : keys[0]!;
@@ -30,7 +33,8 @@ export function ConceptChip({
       style={{ background: s.bg, color: s.fg, borderColor: s.border }}
     >
       <span className="size-2 rounded-full" style={{ background: s.dot }} aria-hidden="true" />
-      <span style={{ color: s.titleFg ?? s.fg }}>{title}</span>
+      {/* Site addition: the title carries the teal accent; the state's own colours stay the board's. */}
+      <span className={tone === 'ink' ? 'text-teal-on-ink' : 'text-teal'}>{title}</span>
       {summary ? (
         <span>{keys.map((k) => states[k]!.label).join(' → ')}</span>
       ) : (

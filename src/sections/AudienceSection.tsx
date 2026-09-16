@@ -10,12 +10,15 @@ export interface AudienceContent {
   body: string;
   cta: string;
   poster: Poster;
+  /** Decorative subject mark (src from `glyph()` in copy.ts). */
+  glyph: string;
 }
 
 /**
  * Parents / Schools / Tuition centres in v1 (040): copy, one CTA and a still. Every still is a real
  * product surface with no identifiable student — the Parents one is a sample report
  * (provenance: public/posters/README.md).
+ * Grounds alternate paper / the board's scene ground, so the page isn't one flat tone.
  */
 export function AudienceSection({
   id,
@@ -26,15 +29,17 @@ export function AudienceSection({
   id: 'parents' | 'schools' | 'tuition';
   content: AudienceContent;
   href: string;
-  tone?: 'paper' | 'ink';
+  tone?: 'paper' | 'scene';
 }) {
-  const ink = tone === 'ink';
+  const scene = tone === 'scene';
   return (
     <section
       id={id}
       aria-labelledby={`${id}-title`}
       data-panel="poster"
-      className={`py-section lg:py-section-lg ${ink ? 'bg-ink text-on-ink' : 'border-t border-line'}`}
+      data-ground={tone}
+      // The paper ground is set explicitly, not inherited, so the alternation is visible to tests too.
+      className={`py-section lg:py-section-lg ${scene ? 'bg-scene' : 'border-t border-line bg-paper'}`}
     >
       <m.div
         initial={{ opacity: 0, y: nudge.md }}
@@ -44,19 +49,25 @@ export function AudienceSection({
         className="mx-auto grid max-w-6xl gap-8 px-gutter lg:grid-cols-2 lg:items-center lg:gap-14 lg:px-gutter-lg"
       >
         <div className="flex flex-col items-start gap-4">
-          <Eyebrow tone={ink ? 'ink' : 'paper'}>{content.eyebrow}</Eyebrow>
+          {/* A div, not a p: Eyebrow renders a <p>, and a paragraph inside a paragraph breaks hydration. */}
+          <div className="flex items-center gap-2">
+            <img src={content.glyph} alt="" aria-hidden="true" width={24} height={24} loading="lazy" className="size-6 object-contain" />
+            {/* teal on paper; the deeper teal on the scene ground, which fails AA at this size. */}
+            <Eyebrow tone={scene ? 'scene' : 'paper'}>{content.eyebrow}</Eyebrow>
+          </div>
           <h2 id={`${id}-title`} className="font-display text-h2 font-semibold tracking-display text-balance">
             {content.headline}
           </h2>
-          <p className={`max-w-prose text-lead text-pretty ${ink ? 'text-on-ink-muted' : 'text-ink-muted'}`}>
-            {content.body}
-          </p>
-          <Button href={href} variant={ink ? 'accent' : 'primary'} external={href.startsWith('https:')}>
+          <p className="max-w-prose text-lead text-pretty text-ink-muted">{content.body}</p>
+          <Button href={href} external={href.startsWith('https:')}>
             {content.cta}
           </Button>
         </div>
         <img
           src={content.poster.src}
+          {...(content.poster.small
+            ? { srcSet: `${content.poster.small} 640w, ${content.poster.src} ${content.poster.width}w`, sizes: '(min-width: 64rem) 34rem, 100vw' }
+            : {})}
           alt={content.poster.alt}
           width={content.poster.width}
           height={content.poster.height}

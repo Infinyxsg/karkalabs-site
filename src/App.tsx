@@ -57,8 +57,10 @@ export function App() {
             poster={loop ? students.loop.poster : students.embed.poster}
             captions={loop ? students.loop.captions : students.embed.captions}
             narration={NARRATION.students}
+            ground="paper"
+            glyph={students.glyph}
           />
-          <AudienceSection id="parents" content={parents} href={whatsappHref} />
+          <AudienceSection id="parents" content={parents} href={whatsappHref} tone="scene" />
           {SCHOOLS_PANEL === 'classroom' ? (
             <PinnedScene
               id="schools"
@@ -75,9 +77,9 @@ export function App() {
               classroom={schools.classroom}
             />
           ) : (
-            <AudienceSection id="schools" content={schools} href={schoolDemoHref} tone="ink" />
+            <AudienceSection id="schools" content={schools} href={schoolDemoHref} />
           )}
-          <AudienceSection id="tuition" content={tuition} href={licensingHref} />
+          <AudienceSection id="tuition" content={tuition} href={licensingHref} tone="scene" />
         </main>
         <SiteFooter />
       </LazyMotion>

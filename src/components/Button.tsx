@@ -26,9 +26,10 @@ const base =
   'inline-flex items-center justify-center gap-2 rounded-pill border border-transparent text-body font-semibold no-underline transition-colors duration-(--dur-fast) ease-karka-out';
 const sizes = { lg: 'min-h-hit-target-lg px-5', md: 'min-h-hit-target px-4' } as const;
 const variants = {
-  primary: 'cursor-pointer bg-ink text-on-ink hover:bg-ink-2',
+  // Site addition: the ink pill hovers to the teal accent, so the product colour shows on interaction.
+  primary: 'cursor-pointer bg-ink text-on-ink hover:bg-teal-deep',
   accent: 'cursor-pointer bg-teal-deep text-on-ink hover:bg-teal-press',
-  chip: 'cursor-pointer border-line bg-board font-medium text-ink hover:border-teal',
+  chip: 'cursor-pointer border-line bg-board font-medium text-ink hover:border-teal hover:text-teal-deep',
 } as const;
 const disabledTone = {
   paper: 'cursor-not-allowed bg-ink/8 text-ink-muted',

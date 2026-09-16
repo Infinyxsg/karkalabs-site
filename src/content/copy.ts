@@ -11,6 +11,26 @@ import type { TileState } from '../product/mastery';
  * Node imports this file too (vite.config.ts, scripts/make-posters.mjs): type-only imports here.
  */
 
+/**
+ * Brand art from the KarkaLogin page (Infinyxsg/KarkaLogin, assets/), optimised to WebP.
+ * The glyphs are the design system's set; `handoff/guidelines/brand-glyphs.html` lists all seven.
+ */
+export const brand = {
+  mascot: {
+    src: '/brand/student-hero.webp',
+    /** Phones get a quarter of the pixels to decode (the panel is ~358px wide at 390). */
+    small: '/brand/student-hero-640.webp',
+    alt: 'A student at a laptop, chin on hand, looking up mid-thought, with books, a plant and pencils on the desk.',
+    width: 1100,
+    height: 1006,
+  },
+  badge: { src: '/brand/karka-badge.webp', small: '/brand/karka-badge-56.webp', alt: 'The Karka badge' },
+  wordmarkLift: { src: '/brand/wordmark-lift.webp', alt: 'KarkaLabs' },
+};
+
+/** Decorative subject mark per section (empty alt: the headline carries the meaning). */
+export const glyph = (name: 'atom' | 'book' | 'graph' | 'pi' | 'sqrt') => `/glyphs/${name}.webp`;
+
 export const hero = {
   headline: 'Learn with AI, not from AI.',
   sub: "Karka is a voice tutor that teaches on a live board. You talk. Aarya listens, catches what's wrong, and redraws it until the concept holds.",
@@ -62,6 +82,7 @@ const twoClocksDraftCaptions: readonly Caption[] = [
 ];
 
 export const students = {
+  glyph: glyph('graph'),
   eyebrow: 'For students',
   headline: 'You say it. Aarya catches it. The board redraws it.',
   // Vinodh's ruling after 040 (session chat): rewritten to match the loop, which shows a graph, not a throw.
@@ -89,12 +110,14 @@ const parentsBody =
 const firstSentenceEnd = parentsBody.indexOf('. ') + 1;
 
 export const parents = {
+  glyph: glyph('book'),
   eyebrow: 'For parents',
   headline: 'See the concept, not just the score.',
   body: parentsBody,
   cta: 'Try a session',
   poster: {
     src: '/posters/parents-sample.webp',
+    small: '/posters/parents-sample-640.webp',
     alt: 'A sample Karka parent report for “Your child”, O-Level Physics: a plain-English summary and three concepts marked Held, Shaky and Not started.',
     width: 1200,
     height: 900,
@@ -124,6 +147,7 @@ export const parents = {
 };
 
 export const schools: {
+  glyph: string;
   eyebrow: string;
   headline: string;
   body: string;
@@ -138,12 +162,14 @@ export const schools: {
     teacherView: TeacherView;
   };
 } = {
+  glyph: glyph('atom'),
   eyebrow: 'For schools',
   headline: 'A board that listens to the whole room.',
   body: "In class, Aarya draws while students answer. Teachers hold the board at the moment that matters, and see every student's concept states afterwards — not just the three who raised their hands.",
   cta: 'Book a school demo',
   poster: {
     src: '/posters/schools-hold.webp',
+    small: '/posters/schools-hold-640.webp',
     alt: 'The Karka board held mid-lesson: a bus on a road, drawn to explain reference frames, under the banner “Holding · after real-world scene, before next quick-check”.',
     width: 960,
     height: 720,
@@ -171,12 +197,14 @@ export const schools: {
 };
 
 export const tuition = {
+  glyph: glyph('pi'),
   eyebrow: 'For tuition centres',
   headline: 'Your syllabus, one concept at a time.',
   body: "O-Level Physics 6091 mapped as a concept graph, gated so students can't skip what they haven't held. Ask about running Karka under your own name.",
   cta: 'Ask about licensing',
   poster: {
     src: '/posters/tuition.webp',
+    small: '/posters/tuition-640.webp',
     alt: 'The Karka mastery board for O-Level Physics: every syllabus skill as a tile, each Not started, Tarnished, Shaky or Held.',
     width: 960,
     height: 720,

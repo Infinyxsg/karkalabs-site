@@ -19,6 +19,8 @@ export interface Poster {
   alt: string;
   width: number;
   height: number;
+  /** Optional 640px-wide variant, so phones don't decode the desktop image. */
+  small?: string;
 }
 
 /** Classroom variant: the teacher holds the board at one step and asks the room a question. */

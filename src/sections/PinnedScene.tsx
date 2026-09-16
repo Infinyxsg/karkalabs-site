@@ -36,6 +36,10 @@ export interface PinnedSceneProps {
   loop?: BoardLoop;
   /** Caption eyebrow for the loop: its lines are the demo's narration, not the tutor's words. */
   captionLabel?: string;
+  /** Section ground. The four audience sections alternate, so the page isn't one flat tone. */
+  ground?: 'ink' | 'paper';
+  /** Decorative subject mark (src from `glyph()` in copy.ts). */
+  glyph?: string;
   /** 'student' shows the concept's tile state; 'classroom' shows the teacher's hold and view. */
   variant: 'student' | 'classroom';
   classroom?: {
@@ -49,12 +53,14 @@ export interface PinnedSceneProps {
 }
 
 /**
- * Pinned scroll sequence on the ink ground. One implementation for every audience and both panels:
+ * Pinned scroll sequence. One implementation for every audience and both panels:
  * - embed: scroll progress → parent sends {cmd:'step', n} → the board draws → the frame's
  *   {evt:'step', n} advances the captions (and, for students, the concept's tile state);
  * - video (C2): the pin holds the board on screen while the loop's own clock (`timeupdate`)
  *   advances the same captions, step pills and chip.
  * Reduced motion: no pin, no frame, no video — poster plus the full transcript.
+ * On a paper ground the concept chip keeps the board's own state colours by sitting in an ink strip:
+ * those colours are the product's and are built for the dark board.
  */
 export function PinnedScene({
   id,
@@ -71,6 +77,8 @@ export function PinnedScene({
   panel = 'embed',
   loop,
   captionLabel,
+  ground = 'ink',
+  glyph,
   variant,
   classroom,
   children,
@@ -84,6 +92,8 @@ export function PinnedScene({
   const [driveStep, setDriveStep] = useState(1);
   const [shownStep, setShownStep] = useState(0);
   const video = panel === 'video' && loop !== undefined;
+  const light = ground === 'paper';
+  const tone = light ? 'paper' : 'ink';
 
   // The step count can change when the frame reports its own; the pin must not (see pinRegistry).
   const totalRef = useRef(total);
@@ -115,8 +125,24 @@ export function PinnedScene({
     ? { atStep: framed ? total : classroom.holdAtStep, label: classroom.holdLabel, question: classroom.classQuestion }
     : undefined;
 
+  const chip =
+    variant === 'student' ? (
+      reduced && shownStep === 0 ? (
+        <ConceptChip summary states={JOURNEY_STATES} />
+      ) : (
+        <ConceptChip state={tileStateForStep(shownStep, total)} />
+      )
+    ) : null;
+
   return (
-    <section id={id} ref={sectionRef} aria-labelledby={`${id}-title`} className="bg-ink text-on-ink" data-variant={variant}>
+    <section
+      id={id}
+      ref={sectionRef}
+      aria-labelledby={`${id}-title`}
+      data-variant={variant}
+      data-ground={light ? 'paper' : 'ink'}
+      className={light ? 'border-t border-line bg-paper text-ink' : 'bg-ink text-on-ink'}
+    >
       <div ref={spacerRef}>
         <div
           ref={pinRef}
@@ -124,19 +150,31 @@ export function PinnedScene({
         >
           <div className="mx-auto grid w-full max-w-6xl gap-5 px-gutter lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-center lg:gap-14 lg:px-gutter-lg">
             <header className="flex flex-col gap-3 lg:gap-5">
-              <Eyebrow tone="ink">{eyebrow}</Eyebrow>
+              {/* A div, not a p: Eyebrow renders a <p>, and a paragraph inside a paragraph breaks hydration. */}
+              <div className="flex items-center gap-2">
+                {glyph && (
+                  <img src={glyph} alt="" aria-hidden="true" width={24} height={24} className="size-6 object-contain" />
+                )}
+                <Eyebrow tone={tone}>{eyebrow}</Eyebrow>
+              </div>
               <h2 id={`${id}-title`} className="font-display text-h2 font-semibold tracking-display text-balance">
                 {headline}
               </h2>
-              {line && <p className="max-w-prose text-lead text-pretty text-on-ink-muted">{line}</p>}
+              {line && (
+                <p className={`max-w-prose text-lead text-pretty ${light ? 'text-ink-muted' : 'text-on-ink-muted'}`}>
+                  {line}
+                </p>
+              )}
               <div className="flex flex-wrap items-center gap-3">
-                {variant === 'student' &&
-                  (reduced && shownStep === 0 ? (
-                    <ConceptChip summary states={JOURNEY_STATES} />
+                {chip &&
+                  (light ? (
+                    <span className="inline-flex rounded-pill bg-ink p-1" data-chip-strip>
+                      {chip}
+                    </span>
                   ) : (
-                    <ConceptChip state={tileStateForStep(shownStep, total)} />
+                    chip
                   ))}
-                {!reduced && <StepProgress current={shownStep} total={total} holdAt={holdCue?.atStep} />}
+                {!reduced && <StepProgress current={shownStep} total={total} holdAt={holdCue?.atStep} tone={tone} />}
               </div>
               {classroom && <TeacherViewCard view={classroom.teacherView} />}
             </header>
@@ -150,6 +188,7 @@ export function PinnedScene({
                 captionLabel={captionLabel ?? tutor}
                 onReady={setTotal}
                 onStepShown={setShownStep}
+                tone={tone}
               />
             ) : (
               <KarkaEmbed
@@ -167,6 +206,7 @@ export function PinnedScene({
                   setFramed(fromFrame);
                 }}
                 onStepShown={setShownStep}
+                tone={tone}
               />
             )}
           </div>

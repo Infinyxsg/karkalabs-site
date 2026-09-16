@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync, statSync } from 'node:fs';
 import { duration } from '../src/design/tokens';
-import { footer, hero, meta, parents, schools, students, tuition } from '../src/content/copy';
+import { brand, footer, hero, meta, parents, schools, students, tuition } from '../src/content/copy';
 import { DEMO_EMAIL, contactProblems, licensingHref, schoolDemoHref, whatsappHref } from '../src/content/contact';
 import { tileStateForStep } from '../src/product/mastery';
 import { expectNoTodo, lenisTo, pinStart, revealAll } from './helpers';
@@ -42,6 +42,19 @@ test('no TODO anywhere in the rendered page', async ({ page }) => {
   await page.goto('/');
   await revealAll(page);
   await expectNoTodo(page);
+});
+
+test('the page logs no browser errors (a hydration mismatch is one)', async ({ page }) => {
+  // Origin: a glyph <img> + Eyebrow (a <p>) wrapped in a <p>. The browser re-nests it, hydration
+  // fails with React #418, and Lighthouse drops best-practices to 96.
+  const errors: string[] = [];
+  page.on('console', (m) => {
+    if (m.type() === 'error') errors.push(m.text());
+  });
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto('/');
+  await revealAll(page);
+  expect(errors).toEqual([]);
 });
 
 test('CTAs resolve to the real contact targets (040 §B)', async ({ page, context }) => {
@@ -147,7 +160,7 @@ test.describe('reduced motion', () => {
     await expect(section.locator('video')).toHaveCount(0);
     await expect(page.locator('.pin-spacer')).toHaveCount(0);
     await expect(section.locator('ol li')).toHaveCount(loop.captions.length);
-    await expect(section.locator('img')).toHaveAttribute('src', loop.poster.src);
+    await expect(section.locator('img[src*="/posters/"]')).toHaveAttribute('src', loop.poster.src);
     await expect(section.locator('[data-concept-state="summary"]')).toHaveText('Concept stateNot started → Shaky');
     await revealAll(page);
     await expectNoTodo(page);
@@ -168,9 +181,71 @@ test('stills: WebP ≤ 200 KB with alt text, loop ≤ 2 MB, OG image 1200×630',
   await page.goto('/');
   await revealAll(page);
   for (const [id, content] of [['parents', parents], ['schools', schools], ['tuition', tuition]] as const) {
-    const img = page.locator(`#${id} img`);
+    const img = page.locator(`#${id} img[src*="/posters/"]`);
     await expect(img).toHaveAttribute('alt', content.poster.alt);
     await expect.poll(() => img.evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth > 0)).toBe(true);
+  }
+});
+
+test('brand: badge in nav and footer, the mascot in the hero, a glyph mark per section', async ({ page }) => {
+  const loaded = (sel: string) =>
+    page.locator(sel).evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth > 0);
+
+  await page.goto('/');
+  // The mascot is in the hero, and it is there before any scrolling.
+  const mascot = page.locator('[data-hero-panel] img');
+  await expect(mascot).toHaveAttribute('src', brand.mascot.src);
+  await expect(mascot).toHaveAttribute('alt', brand.mascot.alt);
+  await expect.poll(() => loaded('[data-hero-panel] img')).toBe(true);
+  expect(await mascot.evaluate((el) => el.getBoundingClientRect().top < window.innerHeight)).toBe(true);
+
+  // The badge, small, in the nav and the footer — decorative beside the wordmark and the company line.
+  for (const sel of ['[data-nav-badge]', '[data-footer-badge]']) {
+    await expect(page.locator(sel)).toHaveAttribute('alt', '');
+    await expect(page.locator(sel)).toHaveAttribute('aria-hidden', 'true');
+  }
+  await expect.poll(() => loaded('[data-nav-badge]')).toBe(true);
+
+  // One decorative subject glyph per audience section, and the grounds alternate.
+  await revealAll(page);
+  const sections = [
+    ['students', students.glyph, 'paper'],
+    ['parents', parents.glyph, 'scene'],
+    ['schools', schools.glyph, 'paper'],
+    ['tuition', tuition.glyph, 'scene'],
+  ] as const;
+  for (const [id, glyphSrc, ground] of sections) {
+    const mark = page.locator(`#${id} img[src*="/glyphs/"]`);
+    await expect(mark).toHaveAttribute('src', glyphSrc);
+    await expect(mark).toHaveAttribute('alt', '');
+    await expect(page.locator(`#${id}`)).toHaveAttribute('data-ground', ground === 'scene' ? 'scene' : 'paper');
+    await expect.poll(() => loaded(`#${id} img[src*="/glyphs/"]`)).toBe(true);
+  }
+  // Ink, paper and scene are distinct grounds, so the page isn't one flat tone.
+  const grounds = await page.evaluate(() =>
+    ['students', 'parents', 'schools', 'tuition'].map((id) => getComputedStyle(document.getElementById(id)!).backgroundColor),
+  );
+  expect(new Set(grounds).size).toBe(2);
+  expect(grounds[0]).toBe(grounds[2]);
+  expect(grounds[1]).toBe(grounds[3]);
+
+  // The teal accent is on the concept chip's title (the state colours stay the board's).
+  await expect(page.locator('#students [data-concept-state] span').nth(1)).toHaveClass(/text-teal/);
+});
+
+test('brand art ships as WebP under 250 KB', () => {
+  for (const f of [
+    'public/brand/student-hero.webp',
+    'public/brand/student-hero-640.webp',
+    'public/brand/karka-badge.webp',
+    'public/brand/karka-badge-56.webp',
+    'public/brand/wordmark-lift.webp',
+    'public/glyphs/graph.webp',
+    'public/glyphs/book.webp',
+    'public/glyphs/atom.webp',
+    'public/glyphs/pi.webp',
+  ]) {
+    expect(statSync(f).size, f).toBeLessThanOrEqual(250 * 1024);
   }
 });
 
