@@ -20,19 +20,59 @@ export const brand = {
     src: '/brand/student-hero.webp',
     /** Phones get a quarter of the pixels to decode (the panel is ~358px wide at 390). */
     small: '/brand/student-hero-640.webp',
+    /** A 412px screen at DPR 1.75 needs ~721px: without this step it takes the 1100px file. */
+    medium: '/brand/student-hero-800.webp',
     alt: 'A student at a laptop, chin on hand, looking up mid-thought, with books, a plant and pencils on the desk.',
     width: 1100,
     height: 1006,
   },
-  badge: { src: '/brand/karka-badge.webp', small: '/brand/karka-badge-56.webp', alt: 'The Karka badge' },
+  /** The full badge only reads at >= 64px; smaller uses take the central emblem (Vinodh, 2026-09-16). */
+  badge: { src: '/brand/karka-badge.webp', alt: 'The Karka badge' },
+  emblem: { small: '/brand/karka-emblem-32.webp', medium: '/brand/karka-emblem-56.webp' },
   wordmarkLift: { src: '/brand/wordmark-lift.webp', alt: 'KarkaLabs' },
 };
 
 /** Decorative subject mark per section (empty alt: the headline carries the meaning). */
-export const glyph = (name: 'atom' | 'book' | 'graph' | 'pi' | 'sqrt') => `/glyphs/${name}.webp`;
+export const glyph = (name: 'atom' | 'book' | 'graph' | 'pi' | 'sqrt' | 'mic' | 'triangle') => `/glyphs/${name}.webp`;
+
+/**
+ * The login art's seven glyphs, settled around the mascot as hero decoration, in roughly the
+ * positions they hold in the KarkaLogin image. The intro drifts them in from just outside the panel;
+ * with reduced motion they are simply already here.
+ */
+export const heroGlyphs: ReadonlyArray<{
+  name: string;
+  src: string;
+  /** Intrinsic size of the file: it reserves the box, so a decoding glyph never resizes itself. */
+  width: number;
+  height: number;
+  at: { top?: string; bottom?: string; left?: string; right?: string };
+}> = [
+  { name: 'pi', src: glyph('pi'), width: 72, height: 82, at: { top: '5%', left: '3%' } },
+  { name: 'graph', src: glyph('graph'), width: 72, height: 60, at: { top: '21%', left: '12%' } },
+  { name: 'sqrt', src: glyph('sqrt'), width: 72, height: 52, at: { top: '5%', right: '5%' } },
+  { name: 'triangle', src: glyph('triangle'), width: 72, height: 68, at: { top: '21%', right: '14%' } },
+  { name: 'atom', src: glyph('atom'), width: 72, height: 64, at: { bottom: '17%', right: '4%' } },
+  { name: 'book', src: glyph('book'), width: 72, height: 50, at: { bottom: '4%', right: '17%' } },
+  { name: 'mic', src: glyph('mic'), width: 72, height: 66, at: { bottom: '13%', left: '4%' } },
+];
+
+/**
+ * The headline, split so "with" and "from" can be set in the display face's real italic
+ * (fonts.css loads the italic file; `font-synthesis: none` forbids a faked slant).
+ * The words are unchanged — `hero.headline` is still joined from these parts.
+ */
+const heroHeadlineParts: ReadonlyArray<{ text: string; italic?: boolean }> = [
+  { text: 'Learn ' },
+  { text: 'with', italic: true },
+  { text: ' AI, not ' },
+  { text: 'from', italic: true },
+  { text: ' AI.' },
+];
 
 export const hero = {
-  headline: 'Learn with AI, not from AI.',
+  headlineParts: heroHeadlineParts,
+  headline: heroHeadlineParts.map((p) => p.text).join(''),
   sub: "Karka is a voice tutor that teaches on a live board. You talk. Aarya listens, catches what's wrong, and redraws it until the concept holds.",
   ctaSession: 'Try a session',
   ctaDemo: 'Book a school demo',
@@ -42,7 +82,7 @@ export const hero = {
 export const meta = {
   title: `KarkaLabs · ${hero.headline}`,
   description: hero.sub,
-  ogImageAlt: 'The KarkaLabs wordmark beside the Karka board drawing a velocity–time graph.',
+  ogImageAlt: 'The headline “Learn with AI, not from AI.” and the KarkaLabs wordmark, beside the Karka board drawing a velocity–time graph.',
 };
 
 export const audiences: ReadonlyArray<{ id: Audience; label: string }> = [

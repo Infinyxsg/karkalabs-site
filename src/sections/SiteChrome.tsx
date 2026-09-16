@@ -6,11 +6,11 @@ export function SiteHeader() {
     <header className="mx-auto flex max-w-6xl items-center justify-between px-gutter py-4 lg:px-gutter-lg">
       <a href="/" aria-label="KarkaLabs home" className="inline-flex min-h-11 items-center gap-2">
         <img
-          src={brand.badge.small}
+          src={brand.emblem.small}
           alt=""
           aria-hidden="true"
           width={28}
-          height={27}
+          height={28}
           data-nav-badge
           className="size-7 object-contain"
         />
@@ -20,6 +20,7 @@ export function SiteHeader() {
           width={240}
           height={40}
           alt="KarkaLabs"
+          data-nav-wordmark
           className="h-7 w-auto lg:h-8"
         />
       </a>
@@ -45,11 +46,11 @@ export function SiteFooter() {
       <div className="mx-auto flex max-w-6xl flex-col gap-3 px-gutter py-10 text-caption lg:flex-row lg:items-center lg:justify-between lg:px-gutter-lg">
         <p className="flex items-center gap-2">
           <img
-            src={brand.badge.small}
+            src={brand.emblem.small}
             alt=""
             aria-hidden="true"
             width={24}
-            height={23}
+            height={24}
             loading="lazy"
             data-footer-badge
             className="size-6 object-contain"

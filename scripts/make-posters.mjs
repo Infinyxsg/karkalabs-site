@@ -12,12 +12,13 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { parents } from '../src/content/copy.ts';
+import { hero, parents } from '../src/content/copy.ts';
 import { CONCEPT_STATES } from '../src/product/mastery.ts';
 
 const repo = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const BRAND = process.env.KARKA_BRAND_DIR ?? 'D:/Demo videos/KarkaLabs - Brand files';
 const INK = '#1a232b'; // handoff/tokens/colors.css --color-ink
+const ON_INK = '#f4f3ee'; // --color-on-ink
 const tmp = mkdtempSync(path.join(tmpdir(), 'karka-posters-'));
 const dataUrl = (file, type) => `data:${type};base64,${readFileSync(file).toString('base64')}`;
 const writeDataUrl = (file, url) => writeFileSync(file, Buffer.from(url.split(',')[1], 'base64'));
@@ -87,14 +88,14 @@ const browser = await chromium.launch({ channel: 'chrome' });
   const poster = dataUrl(path.join(repo, 'public/posters/students-board.webp'), 'image/webp');
 
   const { k, icons, og } = await page.evaluate(
-    async ({ wordmark, poster, ink }) => {
+    async ({ wordmark, ink }) => {
       const load = async (src) => {
         const img = new Image();
         img.src = src;
         await img.decode();
         return img;
       };
-      const [mark, board] = await Promise.all([load(wordmark), load(poster)]);
+      const mark = await load(wordmark);
 
       // The K = the first run of inked columns from the left (light glyph pixels on the on-dark mark).
       const c = document.createElement('canvas');
@@ -139,35 +140,97 @@ const browser = await chromium.launch({ channel: 'chrome' });
         icons[size] = s.toDataURL('image/png');
       }
 
-      const o = document.createElement('canvas');
-      o.width = 1200;
-      o.height = 630;
-      const og = o.getContext('2d');
-      og.fillStyle = ink;
-      og.fillRect(0, 0, 1200, 630);
-      const bw = 640;
-      const bh = Math.round((bw * board.height) / board.width);
-      const bx = 1200 - 48 - bw;
-      const by = Math.round((630 - bh) / 2);
-      og.save();
-      og.beginPath();
-      og.roundRect(bx, by, bw, bh, 20); // the board frame's radius
-      og.clip();
-      og.drawImage(board, bx, by, bw, bh);
-      og.restore();
-      const ww = bx - 96;
-      const wh = Math.round((ww * mark.height) / mark.width);
-      og.drawImage(mark, 48, Math.round((630 - wh) / 2), ww, wh);
-      return { k, icons, og: o.toDataURL('image/png') };
+      return { k, icons };
     },
-    { wordmark, poster, ink: INK },
+    { wordmark, ink: INK },
   );
   // A K is taller than it is wide; anything else means the scan ran into the next letter.
   if (!(k.w > 0 && k.w < k.h)) throw new Error(`could not isolate the K: ${JSON.stringify(k)}`);
   writeDataUrl(path.join(repo, 'public/favicon-32.png'), icons[32]);
   writeDataUrl(path.join(repo, 'public/apple-touch-icon.png'), icons[180]);
-  writeDataUrl(path.join(repo, 'public/og/og-karkalabs.png'), og);
-  console.log(`wrote favicon-32.png, apple-touch-icon.png (K at ${JSON.stringify(k)}), og/og-karkalabs.png`);
+  console.log(`wrote favicon-32.png, apple-touch-icon.png (K at ${JSON.stringify(k)})`);
+
+  // The OG image: the hero headline in the display face — with "with" and "from" in its real italic,
+  // as on the page — the wordmark, and a board still. The faces are loaded from public/fonts so the
+  // canvas draws the real italic rather than a slanted upright.
+  // The fonts go in as data URLs: this page is about:blank, which may not load file:// subresources.
+  const face = (style, file) =>
+    `@font-face{font-family:"Source Serif 4 Variable";font-style:${style};font-weight:200 900;src:url("${dataUrl(
+      path.join(repo, 'public/fonts', file),
+      'font/woff2',
+    )}") format("woff2-variations")}`;
+  await page.addStyleTag({
+    content:
+      face('normal', 'source-serif-4-latin-wght-normal.woff2') +
+      face('italic', 'source-serif-4-latin-wght-italic.woff2'),
+  });
+  const ogPng = await page.evaluate(
+    async ({ poster, wordmark, ink, onInk, lines }) => {
+      const load = async (src) => {
+        const i = new Image();
+        i.src = src;
+        await i.decode();
+        return i;
+      };
+      const [board, mark] = await Promise.all([load(poster), load(wordmark)]);
+      await Promise.all([
+        document.fonts.load('600 64px "Source Serif 4 Variable"'),
+        document.fonts.load('italic 600 64px "Source Serif 4 Variable"'),
+      ]);
+      const c = document.createElement('canvas');
+      c.width = 1200;
+      c.height = 630;
+      const g = c.getContext('2d');
+      g.fillStyle = ink;
+      g.fillRect(0, 0, 1200, 630);
+
+      // Board still on the right, at the board frame's radius.
+      const bw = 520;
+      const bh = Math.round((bw * board.height) / board.width);
+      const bx = 1200 - 56 - bw;
+      const by = Math.round((630 - bh) / 2);
+      g.save();
+      g.beginPath();
+      g.roundRect(bx, by, bw, bh, 20);
+      g.clip();
+      g.drawImage(board, bx, by, bw, bh);
+      g.restore();
+
+      // Headline, two lines, with the italic words set in the italic face.
+      const size = 62;
+      const font = (italic) => `${italic ? 'italic ' : ''}600 ${size}px "Source Serif 4 Variable", Georgia, serif`;
+      g.fillStyle = onInk;
+      g.textBaseline = 'alphabetic';
+      let y = 300;
+      for (const line of lines) {
+        let x = 56;
+        for (const seg of line) {
+          g.font = font(seg.italic);
+          g.fillText(seg.text, x, y);
+          x += g.measureText(seg.text).width;
+        }
+        y += Math.round(size * 1.12);
+      }
+
+      const ww = 232;
+      const wh = Math.round((ww * mark.height) / mark.width);
+      g.drawImage(mark, 56, y + 26, ww, wh);
+      return c.toDataURL('image/png');
+    },
+    {
+      poster,
+      wordmark,
+      ink: INK,
+      onInk: ON_INK,
+      // Same words as the page, split at the comma; the italic flags come from copy.ts. Only each
+      // line's first segment loses its leading space — the spaces between words have to survive.
+      lines: [hero.headlineParts.slice(0, 3), hero.headlineParts.slice(3)].map((segs) =>
+        segs.map((s, i) => ({ text: i === 0 ? s.text.replace(/^\s+/, '') : s.text, italic: Boolean(s.italic) })),
+      ),
+    },
+  );
+  writeDataUrl(path.join(repo, 'public/og/og-karkalabs.png'), ogPng);
+  console.log('wrote og/og-karkalabs.png');
   await page.close();
 }
 

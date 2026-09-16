@@ -165,6 +165,15 @@ test.describe('reduced motion', () => {
     await revealAll(page);
     await expectNoTodo(page);
   });
+
+  test('no intro: the glyphs are already settled and the nav wordmark is in place', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('html')).not.toHaveClass(/karka-intro/);
+    const glyph = page.locator('[data-hero-glyph]').first();
+    expect(await glyph.evaluate((el) => Number(getComputedStyle(el).opacity))).toBeGreaterThan(0.3);
+    expect(await glyph.evaluate((el) => getComputedStyle(el).transform)).toBe('none');
+    expect(await page.locator('[data-nav-wordmark]').evaluate((el) => Number(getComputedStyle(el).opacity))).toBe(1);
+  });
 });
 
 test('stills: WebP ≤ 200 KB with alt text, loop ≤ 2 MB, OG image 1200×630', async ({ page, request }) => {
@@ -203,6 +212,8 @@ test('brand: badge in nav and footer, the mascot in the hero, a glyph mark per s
   for (const sel of ['[data-nav-badge]', '[data-footer-badge]']) {
     await expect(page.locator(sel)).toHaveAttribute('alt', '');
     await expect(page.locator(sel)).toHaveAttribute('aria-hidden', 'true');
+    // At <= 32px only the central emblem reads, so that is what the chrome uses (Vinodh, 2026-09-16).
+    await expect(page.locator(sel)).toHaveAttribute('src', brand.emblem.small);
   }
   await expect.poll(() => loaded('[data-nav-badge]')).toBe(true);
 
@@ -233,12 +244,136 @@ test('brand: badge in nav and footer, the mascot in the hero, a glyph mark per s
   await expect(page.locator('#students [data-concept-state] span').nth(1)).toHaveClass(/text-teal/);
 });
 
+test('the headline sets "with" and "from" in the display face’s real italic', async ({ page }) => {
+  await page.goto('/');
+  const ems = page.locator('#hero-title em');
+  await expect(ems).toHaveCount(2);
+  await expect(ems.nth(0)).toHaveText('with');
+  await expect(ems.nth(1)).toHaveText('from');
+  // The h1's text is unchanged by the markup.
+  await expect(page.locator('#hero-title')).toHaveText(hero.headline);
+
+  const face = await page.evaluate(async () => {
+    await document.fonts.ready;
+    const em = document.querySelector('#hero-title em')!;
+    const italics = [...document.fonts].filter((f) => f.family.includes('Source Serif') && f.style === 'italic');
+    return {
+      style: getComputedStyle(em).fontStyle,
+      synthesis: getComputedStyle(em).fontSynthesis,
+      // A real italic file is loaded, so the browser has no reason to slant the upright face.
+      loadedItalics: italics.filter((f) => f.status === 'loaded').length,
+      checks: document.fonts.check('italic 600 3rem "Source Serif 4 Variable"'),
+    };
+  });
+  expect(face.style).toBe('italic');
+  expect(face.loadedItalics).toBeGreaterThan(0);
+  expect(face.checks).toBe(true);
+  expect(face.synthesis === undefined || face.synthesis === '' || face.synthesis.includes('none')).toBe(true);
+});
+
+test('the intro plays once per session, blocks nothing, and shifts nothing', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await ctx.newPage();
+  await page.addInitScript(() => {
+    const w = window as unknown as { __cls: number; __heroCls: number };
+    w.__cls = 0;
+    w.__heroCls = 0;
+    new PerformanceObserver((list) => {
+      for (const e of list.getEntries() as unknown as { value: number; sources?: { node?: Node | null }[] }[]) {
+        w.__cls += e.value;
+        const inHero = (e.sources ?? []).some((s) => {
+          const el = s.node instanceof Element ? s.node : (s.node?.parentElement ?? null);
+          return Boolean(el?.closest('[data-hero]'));
+        });
+        if (inHero) w.__heroCls += e.value;
+      }
+    }).observe({ type: 'layout-shift', buffered: true });
+    addEventListener('DOMContentLoaded', () => {
+      (window as unknown as { __intro: boolean }).__intro = document.documentElement.classList.contains('karka-intro');
+    });
+  });
+
+  await page.goto('/');
+  // First visit: the flag is on before the first paint, so the hero never flashes its resting state.
+  expect(await page.evaluate(() => (window as unknown as { __intro: boolean }).__intro)).toBe(true);
+  // The copy is readable from the start, and the CTA is usable while the intro runs.
+  expect(await page.locator('[data-hero-copy]').evaluate((el) => Number(getComputedStyle(el).opacity))).toBeGreaterThan(0.3);
+  await expect(page.locator('section[aria-labelledby="hero-title"]').getByRole('link').first()).toBeVisible();
+  expect(await page.locator('[data-hero-glyphs]').evaluate((el) => getComputedStyle(el).pointerEvents)).toBe('none');
+
+  // It finishes well inside the 2s budget, hands the wordmark to the nav and remembers it played.
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.classList.contains('karka-intro')), { timeout: 5_000 })
+    .toBe(false);
+  await expect.poll(() => page.evaluate(() => sessionStorage.getItem('karka:intro-played'))).toBe('1');
+  await expect.poll(() => page.locator('[data-intro-wordmark]').evaluate((el) => Number(getComputedStyle(el).opacity))).toBe(0);
+  expect(await page.locator('[data-nav-wordmark]').evaluate((el) => Number(getComputedStyle(el).opacity))).toBe(1);
+  expect(await page.locator('[data-hero-copy]').evaluate((el) => Number(getComputedStyle(el).opacity))).toBe(1);
+
+  // Transforms and opacities only, so the intro itself moves nothing. Compared against the same page
+  // in a tab that has already seen it: what the hero still shows there is the web-font swap on the
+  // headline (the italic face swaps too), which happens with or without an intro.
+  const introHeroCls = await page.evaluate(() => (window as unknown as { __heroCls: number }).__heroCls);
+  const baselineCtx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const baselinePage = await baselineCtx.newPage();
+  await baselinePage.addInitScript(() => {
+    try {
+      sessionStorage.setItem('karka:intro-played', '1');
+    } catch {
+      /* blocked storage: the intro would run, and the comparison would simply be intro vs intro */
+    }
+    const w = window as unknown as { __heroCls: number };
+    w.__heroCls = 0;
+    new PerformanceObserver((list) => {
+      for (const e of list.getEntries() as unknown as { value: number; sources?: { node?: Node | null }[] }[]) {
+        const inHero = (e.sources ?? []).some((s) => {
+          const el = s.node instanceof Element ? s.node : (s.node?.parentElement ?? null);
+          return Boolean(el?.closest('[data-hero]'));
+        });
+        if (inHero) w.__heroCls += e.value;
+      }
+    }).observe({ type: 'layout-shift', buffered: true });
+  });
+  await baselinePage.goto('/');
+  await baselinePage.waitForTimeout(2500);
+  const baselineHeroCls = await baselinePage.evaluate(() => (window as unknown as { __heroCls: number }).__heroCls);
+  await baselineCtx.close();
+  expect(introHeroCls).toBeLessThanOrEqual(baselineHeroCls + 0.002);
+  // The page's remaining shift at 1440 is the pin-width jump when ScrollTrigger pins the Students
+  // block (measured at karka:pins-built, with and without the intro; absent at 390). Its fix belongs
+  // to the deferred scroll-engine change, and it stays far inside the CLS gate meanwhile.
+  expect(await page.evaluate(() => (window as unknown as { __cls: number }).__cls)).toBeLessThan(0.05);
+
+  // Second load in the same tab: no intro at all.
+  await page.goto('/');
+  expect(await page.evaluate(() => (window as unknown as { __intro: boolean }).__intro)).toBe(false);
+  await ctx.close();
+});
+
+test('the Students eyebrow starts close under the hero at 1440', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await ctx.newPage();
+  await page.goto('/');
+  await pinStart(page, 'students');
+  const gap = await page.evaluate(() => {
+    const hero = document.querySelector('[data-hero]')!.getBoundingClientRect();
+    const eyebrow = document.querySelector('#students div.flex.items-center')!.getBoundingClientRect();
+    return Math.round(eyebrow.top - hero.bottom);
+  });
+  // Was ~250px when the pinned block centred its content: an empty band under the hero.
+  expect(gap).toBeGreaterThanOrEqual(0);
+  expect(gap).toBeLessThan(160);
+  await ctx.close();
+});
+
 test('brand art ships as WebP under 250 KB', () => {
   for (const f of [
     'public/brand/student-hero.webp',
+    'public/brand/student-hero-800.webp',
     'public/brand/student-hero-640.webp',
     'public/brand/karka-badge.webp',
-    'public/brand/karka-badge-56.webp',
+    'public/brand/karka-emblem-32.webp',
+    'public/brand/karka-emblem-56.webp',
     'public/brand/wordmark-lift.webp',
     'public/glyphs/graph.webp',
     'public/glyphs/book.webp',

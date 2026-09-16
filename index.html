@@ -10,8 +10,19 @@
     <link rel="canonical" href="https://karkalabs.ai/" />
     <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <!-- The hero mascot is the largest element above the fold; preload it so LCP doesn't wait for the bundle. -->
-    <link rel="preload" as="image" href="/brand/student-hero.webp" fetchpriority="high" />
+    <!--
+      The hero mascot is the largest element above the fold; preload it so LCP doesn't wait for the
+      bundle. imagesrcset/imagesizes must mirror the <img> exactly, or a phone preloads the desktop
+      file and the srcset picks the small one: 45 KiB fetched where 19 KiB was needed.
+    -->
+    <link
+      rel="preload"
+      as="image"
+      href="/brand/student-hero.webp"
+      imagesrcset="/brand/student-hero-640.webp 640w, /brand/student-hero-800.webp 800w, /brand/student-hero.webp 1100w"
+      imagesizes="(min-width: 64rem) 34rem, 100vw"
+      fetchpriority="high"
+    />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="KarkaLabs" />
     <meta property="og:url" content="https://karkalabs.ai/" />
@@ -22,6 +33,20 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="%KARKA_OG_ALT%" />
     <meta name="twitter:card" content="summary_large_image" />
+    <!--
+      First-visit intro flag, set before the first paint so the hero never flashes its resting state.
+      Only on a first visit in this tab, and never when reduced motion is asked for. src/lib/intro.ts
+      animates from it and removes it; src/styles/intro.css holds the start state.
+    -->
+    <script>
+      try {
+        if (!sessionStorage.getItem('karka:intro-played') && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          document.documentElement.classList.add('karka-intro');
+        }
+      } catch (e) {
+        /* blocked storage: no intro, the page is already in its resting state */
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

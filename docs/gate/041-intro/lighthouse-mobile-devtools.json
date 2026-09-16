@@ -1,0 +1,48 @@
+{
+  "url": "http://localhost:4173/",
+  "formFactor": "mobile",
+  "throttling": "devtools",
+  "lighthouseVersion": "12.8.2",
+  "fetchTime": "2026-09-16T03:43:39.379Z",
+  "runs": [
+    {
+      "performance": 61,
+      "accessibility": 100
+    },
+    {
+      "performance": 62,
+      "accessibility": 100
+    },
+    {
+      "performance": 84,
+      "accessibility": 100
+    }
+  ],
+  "median": {
+    "performance": 62,
+    "accessibility": 100,
+    "bestPractices": 100,
+    "seo": 100,
+    "FCP": "1.2 s",
+    "LCP": "1.7 s",
+    "TBT": "510 ms",
+    "CLS": "1",
+    "SpeedIndex": "1.4 s"
+  },
+  "failedA11yAudits": [],
+  "worst": {
+    "performance": 61,
+    "accessibility": 100,
+    "cls": 1
+  },
+  "lcpByRun": [
+    "1.8 s",
+    "1.7 s",
+    "1.8 s"
+  ],
+  "clsByRun": [
+    1,
+    1,
+    0.003
+  ]
+}

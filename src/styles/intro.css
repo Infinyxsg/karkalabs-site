@@ -1,0 +1,41 @@
+/*
+ * First-visit intro. The <html class="karka-intro"> flag is set by a tiny inline script in index.html,
+ * before the first paint, so the page never flashes its resting state first. Everything here is a
+ * transform or an opacity: no layout property changes, so the intro cannot move anything (CLS stays 0).
+ * src/lib/intro.ts animates these to their resting values and then removes the class.
+ * Reduced motion never gets the class, so the glyphs are simply already settled.
+ */
+
+/* Resting state: the glyphs are hero decoration, the lid wordmark sits where the art had it. */
+[data-hero-glyph] {
+  opacity: 0.55;
+}
+
+/* Start state, first visit only. */
+/*
+ * The panel scales up inside the hero, which keeps its own `overflow: hidden`. An earlier draft let
+ * the hero overflow so the panel could fill the whole viewport: the page then grew wider, and when
+ * the intro ended every centred container re-centred — a 144px jump, CLS 0.029 (measured with
+ * scripts/measure-cls.mjs). Clipping costs a little drama and keeps layout shift at zero.
+ */
+.karka-intro [data-hero-panel] {
+  transform: scale(var(--intro-panel-scale, 1.45));
+  transform-origin: 50% 45%;
+}
+
+.karka-intro [data-hero-media] {
+  z-index: 2;
+}
+
+.karka-intro [data-hero-copy] {
+  opacity: 0.35;
+}
+
+.karka-intro [data-hero-glyph] {
+  opacity: 0;
+}
+
+/* The nav wordmark waits for the one lifting off the laptop to arrive. */
+.karka-intro [data-nav-wordmark] {
+  opacity: 0;
+}

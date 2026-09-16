@@ -73,6 +73,7 @@ export function AudienceSection({
           height={content.poster.height}
           loading="lazy"
           decoding="async"
+          fetchPriority="low"
           className="aspect-4/3 w-full rounded-board object-cover shadow-board"
         />
       </m.div>

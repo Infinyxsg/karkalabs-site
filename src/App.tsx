@@ -26,6 +26,12 @@ export function App() {
     };
   }, [reduced]);
 
+  // The first-visit intro, if index.html's inline script flagged one. It loads after paint and is
+  // decorative: it never blocks the page, and it does nothing at all on a return visit.
+  useEffect(() => {
+    void import('./lib/intro').then(({ runIntro }) => runIntro());
+  }, []);
+
   // 040 §C: v1 shows the muted loop (C2); the live embed (C1) is the same section, switched by config.
   const loop = STUDENTS_PANEL === 'video';
 

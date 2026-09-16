@@ -146,7 +146,9 @@ export function PinnedScene({
       <div ref={spacerRef}>
         <div
           ref={pinRef}
-          className={reduced ? 'py-section lg:py-section-lg' : 'flex min-h-svh flex-col justify-center py-6 lg:py-10'}
+          // Content sits near the top of the pinned block, not centred: centring left a ~250px empty
+          // band between the hero and the Students eyebrow at 1440 (measured with scripts/measure-gap.mjs).
+          className={reduced ? 'py-section lg:py-section-lg' : 'flex min-h-svh flex-col justify-start py-8 lg:py-12'}
         >
           <div className="mx-auto grid w-full max-w-6xl gap-5 px-gutter lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-center lg:gap-14 lg:px-gutter-lg">
             <header className="flex flex-col gap-3 lg:gap-5">
