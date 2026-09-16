@@ -45,6 +45,7 @@ export function Hero() {
               height={brand.mascot.height}
               fetchPriority="high"
               decoding="async"
+              data-hero-still
               className="w-full"
             />
           </div>

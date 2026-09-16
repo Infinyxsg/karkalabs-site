@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { duration } from '../src/design/tokens';
 import { brand, footer, hero, meta, parents, schools, students, tuition } from '../src/content/copy';
 import { DEMO_EMAIL, contactProblems, licensingHref, schoolDemoHref, whatsappHref } from '../src/content/contact';
@@ -8,6 +8,18 @@ import { expectNoTodo, lenisTo, pinStart, revealAll } from './helpers';
 
 // The production build (dist/ on :4173): exactly what ships in v1 (040).
 test.use({ viewport: { width: 390, height: 844 } });
+
+// Everything here runs on the resting page: the first-visit intro has its own tests, and they open
+// their own contexts. Without this, an unrelated test races a playing clip (it flaked exactly once).
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    try {
+      sessionStorage.setItem('karka:intro-played', '1');
+    } catch {
+      /* blocked storage: the intro runs, and these tests simply see it */
+    }
+  });
+});
 
 const loop = students.loop;
 const launchCopy = [
@@ -145,9 +157,35 @@ test('Students: the loop pauses on the visitor’s Pause and off-screen', async 
   await section.getByRole('button', { name: 'Play the board video' }).click();
   await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.paused)).toBe(false);
   await lenisTo(page, 'bottom');
-  await expect
-    .poll(async () => (await video.count()) === 0 || (await video.evaluate((v: HTMLVideoElement) => v.paused)))
-    .toBe(true);
+  // Generous, and tolerant of the element unmounting mid-check: the observers that pause and unmount
+  // the loop can take their time when the whole suite is competing for the CPU (it flaked at 5s).
+  const settled = async () => {
+    if ((await video.count()) === 0) return true;
+    // Awaited, not returned: an unawaited promise here made the poll compare a Promise to `true`,
+    // so it could only ever pass on the tick where the loop had already unmounted.
+    return await video.evaluate((v: HTMLVideoElement) => v.paused).catch(() => true);
+  };
+  try {
+    await expect.poll(settled, { timeout: 15_000 }).toBe(true);
+  } catch (failure) {
+    // This has only ever failed inside the full suite, never alone or under CPU throttling. Record
+    // where the page actually was, so the next occurrence names its cause instead of being guessed at.
+    const state = await page.evaluate(() => {
+      const lenis = (window as unknown as { __karkaLenis?: { scroll?: number; limit?: number } }).__karkaLenis;
+      const section = document.getElementById('students');
+      return {
+        scrollY: Math.round(window.scrollY),
+        scrollHeight: document.documentElement.scrollHeight,
+        innerHeight: window.innerHeight,
+        lenis: lenis ? { scroll: Math.round(lenis.scroll ?? -1), limit: Math.round(lenis.limit ?? -1) } : null,
+        pin: section ? { start: section.dataset.pinStart, end: section.dataset.pinEnd } : null,
+        sectionTop: section ? Math.round(section.getBoundingClientRect().top) : null,
+        videos: document.querySelectorAll('#students video').length,
+        paused: document.querySelector<HTMLVideoElement>('#students video')?.paused ?? null,
+      };
+    });
+    throw new Error(`${(failure as Error).message}\nPage state at failure: ${JSON.stringify(state)}`);
+  }
 });
 
 test.describe('reduced motion', () => {
@@ -296,14 +334,17 @@ test('the intro plays once per session, blocks nothing, and shifts nothing', asy
   await page.goto('/');
   // First visit: the flag is on before the first paint, so the hero never flashes its resting state.
   expect(await page.evaluate(() => (window as unknown as { __intro: boolean }).__intro)).toBe(true);
-  // The copy is readable from the start, and the CTA is usable while the intro runs.
-  expect(await page.locator('[data-hero-copy]').evaluate((el) => Number(getComputedStyle(el).opacity))).toBeGreaterThan(0.3);
+  // The copy is readable from the first paint, at the intro's low opacity, and the CTA is usable.
+  const copyAtStart = await page.locator('[data-hero-copy]').evaluate((el) => Number(getComputedStyle(el).opacity));
+  expect(copyAtStart).toBeGreaterThan(0.3);
+  expect(copyAtStart).toBeLessThan(1);
   await expect(page.locator('section[aria-labelledby="hero-title"]').getByRole('link').first()).toBeVisible();
   expect(await page.locator('[data-hero-glyphs]').evaluate((el) => getComputedStyle(el).pointerEvents)).toBe('none');
 
   // It finishes well inside the 2s budget, hands the wordmark to the nav and remembers it played.
   await expect
-    .poll(() => page.evaluate(() => document.documentElement.classList.contains('karka-intro')), { timeout: 5_000 })
+    // The clip runs 6.2s and then dissolves into the still, so the class clears at about 6.5s.
+    .poll(() => page.evaluate(() => document.documentElement.classList.contains('karka-intro')), { timeout: 12_000 })
     .toBe(false);
   await expect.poll(() => page.evaluate(() => sessionStorage.getItem('karka:intro-played'))).toBe('1');
   await expect.poll(() => page.locator('[data-intro-wordmark]').evaluate((el) => Number(getComputedStyle(el).opacity))).toBe(0);
@@ -348,6 +389,60 @@ test('the intro plays once per session, blocks nothing, and shifts nothing', asy
   await page.goto('/');
   expect(await page.evaluate(() => (window as unknown as { __intro: boolean }).__intro)).toBe(false);
   await ctx.close();
+});
+
+test('the video intro plays once, and Skip lands the hero in its resting state', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await ctx.newPage();
+  const errors: string[] = [];
+  page.on('console', (m) => {
+    if (m.type() === 'error') errors.push(m.text());
+  });
+  page.on('pageerror', (e) => errors.push(String(e)));
+
+  await page.goto('/');
+  const video = page.locator('[data-intro-video]');
+  await expect(video).toBeAttached({ timeout: 8_000 });
+  // Muted and inline, with both formats, and fetched only after the first paint: it is decoration and
+  // must never become the page's largest paint.
+  expect(
+    await video.evaluate((v: HTMLVideoElement) => ({
+      muted: v.muted,
+      inline: v.playsInline,
+      preload: v.preload,
+      sources: [...v.querySelectorAll('source')].map((s) => s.type),
+    })),
+  // H.264 MP4 only: every target browser plays it, and VP9 encoded larger at this length.
+  ).toEqual({ muted: true, inline: true, preload: 'none', sources: ['video/mp4'] });
+  // It is inside the panel, which clips it: the clip cannot widen the page.
+  expect(await video.evaluate((v: HTMLVideoElement) => v.closest('[data-hero-media]') !== null)).toBe(true);
+
+  // Skip is reachable from the first moment and ends the intro at once.
+  const skip = page.getByRole('button', { name: 'Skip' });
+  await expect(skip).toBeVisible();
+  await skip.click();
+  await expect(page.locator('[data-intro-video]')).toHaveCount(0);
+  await expect(page.locator('html')).not.toHaveClass(/karka-intro/);
+  for (const [sel, value] of [
+    ['[data-hero-copy]', 1],
+    ['[data-nav-wordmark]', 1],
+    ['[data-intro-wordmark]', 0],
+  ] as const) {
+    expect(await page.locator(sel).evaluate((el) => Number(getComputedStyle(el).opacity)), sel).toBe(value);
+  }
+  expect(errors).toEqual([]);
+
+  // Second load in the same tab: no clip at all.
+  await page.goto('/');
+  await page.waitForTimeout(600);
+  await expect(page.locator('[data-intro-video]')).toHaveCount(0);
+  await ctx.close();
+});
+
+test('the intro clip ships under 1.5 MB, silent, with a poster', () => {
+  expect(statSync('public/video/intro-mascot.mp4').size).toBeLessThanOrEqual(1.5 * 1024 * 1024);
+  expect(statSync('public/video/intro-mascot-poster.webp').size).toBeLessThanOrEqual(250 * 1024);
+  expect(existsSync('public/video/intro-mascot.webm'), 'the WebM was dropped: MP4 plays everywhere').toBe(false);
 });
 
 test('the Students eyebrow starts close under the hero at 1440', async ({ browser }) => {

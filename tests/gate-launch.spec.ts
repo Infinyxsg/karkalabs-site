@@ -14,6 +14,17 @@ const VIEWPORTS = [
 ] as const;
 const SECTIONS = ['hero', 'students', 'parents', 'schools', 'tuition', 'footer'] as const;
 
+// The launch screenshots are of the resting site; the intro has its own evidence (gate-intro.spec.ts).
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    try {
+      sessionStorage.setItem('karka:intro-played', '1');
+    } catch {
+      /* blocked storage: the intro runs, and the captures simply include it */
+    }
+  });
+});
+
 async function scrollToSection(page: Page, id: (typeof SECTIONS)[number]) {
   if (id === 'footer') return lenisTo(page, 'bottom');
   if (id === 'students') return lenisTo(page, await pinStart(page, 'students'));

@@ -13,7 +13,7 @@ export default defineConfig({
   projects: [
     {
       name: 'site',
-      testMatch: ['site.spec.ts', 'gate-launch.spec.ts'],
+      testMatch: ['site.spec.ts', 'gate-launch.spec.ts', 'gate-intro.spec.ts'],
       use: { baseURL: 'http://localhost:4173', channel: 'chrome' },
     },
     {

@@ -1,13 +1,26 @@
 import { expect, type Page } from '@playwright/test';
 
-/** Jump to an exact scroll position (through Lenis when it runs, so ScrollTrigger follows). */
+/**
+ * Jump to an exact scroll position (through Lenis when it runs, so ScrollTrigger follows), and make
+ * sure it took. Lenis clamps to bounds it measures itself: ask before it has measured them and the
+ * jump silently lands at 0 — which looked like "the board never pauses off-screen" in the suite.
+ */
 export async function lenisTo(page: Page, y: number | 'bottom') {
-  await page.evaluate((y) => {
-    const target = y === 'bottom' ? document.documentElement.scrollHeight : y;
-    const lenis = (window as unknown as { __karkaLenis?: { scrollTo: (y: number, o: object) => void } }).__karkaLenis;
-    if (lenis) lenis.scrollTo(target, { immediate: true, force: true });
-    else window.scrollTo(0, target);
-  }, y);
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    await page.evaluate((y) => {
+      const target = y === 'bottom' ? document.documentElement.scrollHeight : y;
+      const lenis = (window as unknown as { __karkaLenis?: { scrollTo: (y: number, o: object) => void } }).__karkaLenis;
+      if (lenis) lenis.scrollTo(target, { immediate: true, force: true });
+      else window.scrollTo(0, target);
+    }, y);
+    const landed = await page.evaluate((y) => {
+      const wanted =
+        y === 'bottom' ? document.documentElement.scrollHeight - window.innerHeight : Math.max(0, y as number);
+      return wanted <= 0 ? window.scrollY === 0 : Math.abs(window.scrollY - wanted) < 8;
+    }, y);
+    if (landed) return;
+    await page.waitForTimeout(250);
+  }
 }
 
 /** The section's pin start, once every pin is built and has published its bounds. */
